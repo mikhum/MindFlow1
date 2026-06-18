@@ -1,0 +1,16 @@
+{
+  "name": "mindflow-mindmap",
+  "version": "1.0.0",
+  "description": "A premium web-based free-form mindmap program with local save/load capabilities.",
+  "scripts": {
+    "dev": "npx -y http-server -p 3000 -c-1"
+  },
+  "keywords": [
+    "mindmap",
+    "editor",
+    "free-form",
+    "productivity"
+  ],
+  "author": "",
+  "license": "ISC"
+}

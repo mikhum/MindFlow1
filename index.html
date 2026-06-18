@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindFlow - Interactive Mindmap Editor</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-diagram-project brand-icon"></i>
+                    <h1>MindFlow</h1>
+                </div>
+                <button class="toggle-sidebar-btn" id="hide-sidebar" title="Hide Sidebar">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- File Actions Section -->
+                <div class="sidebar-section">
+                    <h3>Map Manager</h3>
+                    <div class="button-group-vertical">
+                        <button class="btn btn-primary" id="btn-new-map">
+                            <i class="fa-solid fa-plus"></i> New Mindmap
+                        </button>
+                        <button class="btn btn-secondary" id="btn-save-map">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Current
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Saved Maps Section -->
+                <div class="sidebar-section">
+                    <h3>Saved Maps</h3>
+                    <div class="saved-maps-list" id="saved-maps-list">
+                        <div class="empty-state">No saved maps found in browser storage.</div>
+                    </div>
+                </div>
+
+                <!-- Local File Import/Export -->
+                <div class="sidebar-section">
+                    <h3>Local Backup</h3>
+                    <div class="button-group-row">
+                        <button class="btn btn-outline" id="btn-export-file" title="Export as JSON">
+                            <i class="fa-solid fa-download"></i> Export JSON
+                        </button>
+                        <button class="btn btn-outline" id="btn-import-file" title="Import JSON">
+                            <i class="fa-solid fa-upload"></i> Import JSON
+                        </button>
+                        <input type="file" id="file-import-input" accept=".json,.mindmap" style="display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="theme-info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Press H for keyboard help</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Toggle Sidebar Button (shown when sidebar is hidden) -->
+        <button class="show-sidebar-btn" id="show-sidebar" title="Show Sidebar" style="display: none;">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <!-- Main Workspace -->
+        <main class="workspace-container" id="workspace">
+            <!-- Linking Banner -->
+            <div class="linking-banner" id="linking-banner" style="display: none;">
+                <i class="fa-solid fa-link"></i>
+                <span>Linking Mode: Click a target node to create relationship. Press <strong>Esc</strong> to cancel.</span>
+            </div>
+
+            <!-- Infinite Canvas -->
+            <div class="canvas" id="canvas">
+                <!-- SVG overlay for rendering connector lines -->
+                <svg class="svg-connector-overlay" id="svg-overlay">
+                    <defs>
+                        <marker id="relationship-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#f43f5e" />
+                        </marker>
+                    </defs>
+                </svg>
+                
+                <!-- Container for HTML nodes -->
+                <div class="nodes-container" id="nodes-container"></div>
+            </div>
+
+            <!-- Floating Controls -->
+            <div class="floating-controls">
+                <button class="control-btn" id="ctrl-zoom-out" title="Zoom Out (Scroll Down)">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+                <span class="zoom-indicator" id="zoom-indicator">100%</span>
+                <button class="control-btn" id="ctrl-zoom-in" title="Zoom In (Scroll Up)">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+                <div class="divider"></div>
+                <button class="control-btn" id="ctrl-reset-view" title="Reset View (Space)">
+                    <i class="fa-solid fa-crosshairs"></i>
+                </button>
+                <button class="control-btn" id="ctrl-add-child" title="Add Child (Tab)">
+                    <i class="fa-solid fa-circle-plus"></i>
+                </button>
+                <button class="control-btn" id="ctrl-add-relationship" title="Add Relationship Link (L)">
+                    <i class="fa-solid fa-link"></i>
+                </button>
+                <button class="control-btn btn-danger" id="ctrl-delete-node" title="Delete Node (Del/Backspace)">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <div class="divider"></div>
+                <button class="control-btn" id="ctrl-help" title="Keyboard Shortcuts (H)">
+                    <i class="fa-solid fa-keyboard"></i>
+                </button>
+            </div>
+        </main>
+
+        <!-- Help Modal -->
+        <div class="modal-overlay" id="help-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-keyboard"></i> Keyboard Shortcuts & Controls</h2>
+                    <button class="modal-close" id="close-help-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item">
+                            <span class="key">Tab</span>
+                            <span class="action">Add child node</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Enter</span>
+                            <span class="action">Add sibling node / Commit text edit</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">F2</span> / <span class="key">Double Click</span>
+                            <span class="action">Edit selected node text</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Arrow Keys</span>
+                            <span class="action">Navigate between nodes</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Delete</span> / <span class="key">Backspace</span>
+                            <span class="action">Delete node and its branch</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Esc</span>
+                            <span class="action">Cancel text edit / Deselect</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Drag Node</span>
+                            <span class="action">Reposition node (free-form)</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Drag onto Node</span>
+                            <span class="action">Re-parent branch to new node</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Drag Canvas</span>
+                            <span class="action">Pan workspace (Left-click background)</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Scroll Wheel</span>
+                            <span class="action">Zoom in / Zoom out</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Ctrl + Z</span> / <span class="key">Ctrl + Y</span>
+                            <span class="action">Undo / Redo changes</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="btn-close-help">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core App JS -->
+    <script src="app.js"></script>
+</body>
+</html>
