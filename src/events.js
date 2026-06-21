@@ -397,28 +397,35 @@ function handleGlobalPointerUp(e) {
 function checkPotentialParent(draggedId, absX, absY) {
     let bestCandidateId = null;
     let bestScore = Infinity;
-    const candidateDivs = [];
+
+    // Get the dragged node's current position (including dragDelta)
+    const draggedCoords = getAbsoluteCoords(draggedId);
+    const draggedDiv = document.getElementById(`node-${draggedId}`);
+    if (!draggedDiv) return;
+    const draggedWidth = draggedDiv.offsetWidth;
+    const draggedHeight = draggedDiv.offsetHeight;
 
     Object.keys(state.nodes).forEach(nodeId => {
-        if (nodeId === draggedId || isDescendantOf(draggedId, nodeId)) return;
+        // Skip the dragged node itself and its direct children (to avoid circular references)
+        if (nodeId === draggedId || state.nodes[nodeId]?.parent === draggedId) return;
 
         const coords = getAbsoluteCoords(nodeId);
         const div = document.getElementById(`node-${nodeId}`);
         if (!div) return;
 
-        candidateDivs.push({ nodeId, div });
-
         const nodeWidth = div.offsetWidth;
         const nodeHeight = div.offsetHeight;
-        const tolerance = 28;
 
+        const tolerance = 12;
+        // Check if dragged node's bounds overlap with target node's bounds (with tolerance)
         if (
-            absX >= coords.x - nodeWidth / 2 - tolerance &&
-            absX <= coords.x + nodeWidth / 2 + tolerance &&
-            absY >= coords.y - nodeHeight / 2 - tolerance &&
-            absY <= coords.y + nodeHeight / 2 + tolerance
+            draggedCoords.x + draggedWidth / 2 >= coords.x - nodeWidth / 2 - tolerance &&
+            draggedCoords.x - draggedWidth / 2 <= coords.x + nodeWidth / 2 + tolerance &&
+            draggedCoords.y + draggedHeight / 2 >= coords.y - nodeHeight / 2 - tolerance &&
+            draggedCoords.y - draggedHeight / 2 <= coords.y + nodeHeight / 2 + tolerance
         ) {
-            const score = Math.abs(absX - coords.x) + Math.abs(absY - coords.y);
+            // Score based on distance between centers
+            const score = Math.abs(draggedCoords.x - coords.x) + Math.abs(draggedCoords.y - coords.y);
             if (score < bestScore) {
                 bestScore = score;
                 bestCandidateId = nodeId;
@@ -426,10 +433,19 @@ function checkPotentialParent(draggedId, absX, absY) {
         }
     });
 
-    state.hoveredParentId = bestCandidateId;
-    candidateDivs.forEach(({ nodeId, div }) => {
-        div.classList.toggle("potential-parent", nodeId === bestCandidateId);
+    // Remove potential-parent from all nodes first
+    Object.keys(state.nodes).forEach(nodeId => {
+        const div = document.getElementById(`node-${nodeId}`);
+        if (div) div.classList.remove("potential-parent");
     });
+
+    // Add potential-parent to the best candidate
+    if (bestCandidateId) {
+        const bestDiv = document.getElementById(`node-${bestCandidateId}`);
+        if (bestDiv) bestDiv.classList.add("potential-parent");
+    }
+
+    state.hoveredParentId = bestCandidateId;
 }
 
 /**
@@ -455,33 +471,9 @@ function finishDraggingNode(e) {
         y: state.dragStartNodePos.y + state.dragDelta.y
     };
 
-    // Prefer explicit hover target, but fall back to the node under cursor at drop time.
-    let dropParentId = state.hoveredParentId;
-    if (!dropParentId) {
-        const draggedDiv = document.getElementById(`node-${draggedNodeId}`);
-        let previousPointerEvents = "";
-        if (draggedDiv) {
-            previousPointerEvents = draggedDiv.style.pointerEvents;
-            draggedDiv.style.pointerEvents = "none";
-        }
-
-        const dropElement = document.elementFromPoint(e.clientX, e.clientY);
-        const dropNode = dropElement?.closest?.(".node");
-        if (dropNode && dropNode.id && dropNode.id.startsWith("node-")) {
-            const candidateParentId = dropNode.id.slice(5);
-            if (
-                candidateParentId &&
-                candidateParentId !== draggedNodeId &&
-                !isDescendantOf(candidateParentId, draggedNodeId)
-            ) {
-                dropParentId = candidateParentId;
-            }
-        }
-
-        if (draggedDiv) {
-            draggedDiv.style.pointerEvents = previousPointerEvents;
-        }
-    }
+    // Only reparent if hoveredParentId was explicitly set by checkPotentialParent
+    // (i.e. the dragged node's center was strictly within a target node's bounds).
+    const dropParentId = state.hoveredParentId || null;
 
     // If a valid parent target was found, reparent.
     if (dropParentId) {

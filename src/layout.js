@@ -184,11 +184,19 @@ export function parseFreemindXml(xmlText) {
         y: 0
     };
 
-    // Traverse all nodes
+    // Traverse nodes - if there is a single top-level node it IS the root,
+    // so traverse its children directly to avoid creating a duplicate level.
     const rootNodeElements = mapNode.querySelectorAll(":scope > node");
-    rootNodeElements.forEach(nodeElem => {
-        traverse(nodeElem, "root", 1);
-    });
+    if (rootNodeElements.length === 1) {
+        const singleRootElem = rootNodeElements[0];
+        singleRootElem.querySelectorAll(":scope > node").forEach(child => {
+            traverse(child, "root", 1);
+        });
+    } else {
+        rootNodeElements.forEach(nodeElem => {
+            traverse(nodeElem, "root", 1);
+        });
+    }
 
     return {
         name: mapNode.getAttribute("id") || "Imported Map",
