@@ -10,9 +10,55 @@ import { layoutImportedMap, parseFreemindXml } from './layout.js';
 import { saveHistory } from './history.js';
 import { getDomElements } from './dom.js';
 import { getEdgePoint } from './utils.js';
-import html2canvas from '../node_modules/html2canvas/dist/html2canvas.esm.js';
 
 const DEFAULT_ROOT_COLOR = "#0ea5e9";
+let pdfLibrariesPromise = null;
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-mindflow-lib="${src}"]`);
+        if (existing) {
+            if (existing.getAttribute("data-loaded") === "true") {
+                resolve();
+                return;
+            }
+            existing.addEventListener("load", () => resolve(), { once: true });
+            existing.addEventListener("error", () => reject(new Error(`Failed to load script: ${src}`)), { once: true });
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.setAttribute("data-mindflow-lib", src);
+        script.addEventListener("load", () => {
+            script.setAttribute("data-loaded", "true");
+            resolve();
+        }, { once: true });
+        script.addEventListener("error", () => reject(new Error(`Failed to load script: ${src}`)), { once: true });
+        document.head.appendChild(script);
+    });
+}
+
+async function getPdfLibraries() {
+    if (!pdfLibrariesPromise) {
+        pdfLibrariesPromise = (async () => {
+            await loadScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js");
+            const html2canvasModule = await import("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm");
+            const html2canvas = html2canvasModule.default || html2canvasModule;
+            const JsPdfCtor = window.jspdf?.jsPDF;
+
+            if (!html2canvas || !JsPdfCtor) {
+                throw new Error("PDF libraries unavailable");
+            }
+
+            return { html2canvas, JsPdfCtor };
+        })();
+    }
+
+    return pdfLibrariesPromise;
+}
 
 function ensureRootColor() {
     if (!state.nodes?.root) return;
@@ -361,12 +407,13 @@ export function handleExportPdf() {
 }
 
 async function exportMindmapPdf() {
+    const { html2canvas, JsPdfCtor } = await getPdfLibraries();
     const mapTitle = state.currentMapName || state.nodes.root?.text || "mindmap";
-    const { nodesContainer, svgOverlay } = getDomElements();
+    const { nodesContainer } = getDomElements();
     const nodeElements = Array.from(nodesContainer?.querySelectorAll(".node") || []);
     const orientationSetting = getDomElements().pdfOrientationSelect?.value === "portrait" ? "portrait" : "landscape";
 
-    if (!nodesContainer || !svgOverlay || nodeElements.length === 0) {
+    if (!nodesContainer || nodeElements.length === 0) {
         throw new Error("No visible nodes to export");
     }
 
@@ -461,11 +508,6 @@ async function exportMindmapPdf() {
         } else if (orientationSetting === "landscape" && sourceHeightPt > sourceWidthPt) {
             pageWidthPt = sourceHeightPt;
             pageHeightPt = sourceWidthPt;
-        }
-
-        const JsPdfCtor = window.jspdf?.jsPDF;
-        if (!JsPdfCtor) {
-            throw new Error("jsPDF is not available");
         }
 
         const pdf = new JsPdfCtor({
