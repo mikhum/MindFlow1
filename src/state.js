@@ -32,6 +32,11 @@ export const state = {
     dragStartNodePos: { x: 0, y: 0 },
     dragDelta: { x: 0, y: 0 },
     hoveredParentId: null,
+    resizingNodeId: null,
+    resizeStartMouse: { x: 0, y: 0 },
+    resizeStartSize: { width: 0, height: 0 },
+    lastPointerDownNodeId: null,
+    lastPointerDownAt: 0,
 
     // --- Relationship Linking ---
     linkingSourceId: null,
@@ -75,6 +80,11 @@ export function resetState() {
     state.dragStartNodePos = { x: 0, y: 0 };
     state.dragDelta = { x: 0, y: 0 };
     state.hoveredParentId = null;
+    state.resizingNodeId = null;
+    state.resizeStartMouse = { x: 0, y: 0 };
+    state.resizeStartSize = { width: 0, height: 0 };
+    state.lastPointerDownNodeId = null;
+    state.lastPointerDownAt = 0;
     state.linkingSourceId = null;
     state.linkingMousePos = null;
     state.undoStack = [];

@@ -48,11 +48,16 @@ export function render() {
 function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
     const { nodesContainer } = getDomElements();
     const node = state.nodes[nodeId];
+    const nodeDepth = getNodeDepth(nodeId);
 
     const coords = getAbsoluteCoords(nodeId);
     const nodeDiv = document.createElement("div");
     nodeDiv.className = "node";
     nodeDiv.id = `node-${nodeId}`;
+
+    if (nodeDepth >= 2) {
+        nodeDiv.classList.add("node-inline-text");
+    }
 
     // Apply selected state
     if (state.selectedNodeId === nodeId) {
@@ -74,9 +79,20 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
     // Position
     nodeDiv.style.left = coords.x + "px";
     nodeDiv.style.top = coords.y + "px";
+    nodeDiv.style.textAlign = node.textAlign === "left" ? "left" : "center";
+
+    if (nodeDepth < 2) {
+        if (node.width) {
+            nodeDiv.style.width = `${node.width}px`;
+            nodeDiv.style.maxWidth = "none";
+        }
+        if (node.height) {
+            nodeDiv.style.height = `${node.height}px`;
+        }
+    }
 
     // Apply custom background color if set
-    if (node.color && node.color.bg) {
+    if (nodeDepth < 2 && node.color && node.color.bg) {
         nodeDiv.style.backgroundColor = node.color.bg;
         nodeDiv.style.color = getContrastingTextColor(node.color.bg);
     }
@@ -101,6 +117,10 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
         const toggleLabel = isCollapsed ? "+" : "-";
         const toggleTitle = isCollapsed ? "Show children" : "Hide children";
         content += `<button class="node-collapse-toggle" type="button" aria-label="${toggleTitle}" title="${toggleTitle}">${toggleLabel}</button>`;
+    }
+
+    if (nodeDepth < 2) {
+        content += '<span class="node-resize-handle" title="Drag to resize topic" aria-hidden="true"></span>';
     }
 
     nodeDiv.innerHTML = content;
@@ -158,6 +178,31 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
         });
     }
 
+    const resizeHandle = nodeDiv.querySelector(".node-resize-handle");
+    if (resizeHandle) {
+        resizeHandle.addEventListener("pointerdown", (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            const { workspace } = getDomElements();
+            const rect = workspace.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left - state.viewportTransform.x) / state.viewportTransform.scale;
+            const mouseY = (e.clientY - rect.top - state.viewportTransform.y) / state.viewportTransform.scale;
+
+            state.selectedNodeId = nodeId;
+            state.selectedRelationshipId = null;
+            state.resizingNodeId = nodeId;
+            state.resizeStartMouse = { x: mouseX, y: mouseY };
+            state.resizeStartSize = {
+                width: nodeDiv.offsetWidth,
+                height: nodeDiv.offsetHeight
+            };
+
+            workspace.setPointerCapture(e.pointerId);
+            render();
+        });
+    }
+
     nodesContainer.appendChild(nodeDiv);
 }
 
@@ -165,7 +210,14 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
  * Update sidebar controls based on selected node/relationship
  */
 export function updateNodeStyleControls() {
-    const { nodeColorPicker, nodeColorClearBtn, nodeColorPalette, nodeCommentTextarea } = getDomElements();
+    const {
+        nodeColorPicker,
+        nodeColorClearBtn,
+        nodeColorPalette,
+        topicAlignCenter,
+        topicAlignLeft,
+        nodeCommentTextarea
+    } = getDomElements();
 
     let selectedObject = null;
     let selectedColor = null;
@@ -193,6 +245,14 @@ export function updateNodeStyleControls() {
             nodeCommentTextarea.disabled = true;
             nodeCommentTextarea.value = "";
         }
+        if (topicAlignCenter) {
+            topicAlignCenter.disabled = true;
+            topicAlignCenter.classList.remove("active");
+        }
+        if (topicAlignLeft) {
+            topicAlignLeft.disabled = true;
+            topicAlignLeft.classList.remove("active");
+        }
         if (nodeColorPalette) {
             nodeColorPalette.querySelectorAll(".color-swatch").forEach((swatch) => {
                 swatch.classList.remove("active");
@@ -213,6 +273,19 @@ export function updateNodeStyleControls() {
     if (nodeCommentTextarea) {
         nodeCommentTextarea.disabled = false;
         nodeCommentTextarea.value = selectedComment;
+    }
+
+    const isNodeSelected = !state.selectedRelationshipId;
+    const selectedNode = isNodeSelected ? state.nodes[state.selectedNodeId] : null;
+    const align = selectedNode?.textAlign === "left" ? "left" : "center";
+
+    if (topicAlignCenter) {
+        topicAlignCenter.disabled = !isNodeSelected;
+        topicAlignCenter.classList.toggle("active", align === "center" && isNodeSelected);
+    }
+    if (topicAlignLeft) {
+        topicAlignLeft.disabled = !isNodeSelected;
+        topicAlignLeft.classList.toggle("active", align === "left" && isNodeSelected);
     }
 
     if (nodeColorPalette) {
@@ -433,7 +506,12 @@ function escapeHtml(text) {
 export function handleNodePointerDown(e, nodeId) {
     if (e.button !== 0) return; // Only left-click
 
-    if (e.detail === 2) {
+    const now = Date.now();
+    const isDoubleClick = state.lastPointerDownNodeId === nodeId && (now - state.lastPointerDownAt) < 320;
+    state.lastPointerDownNodeId = nodeId;
+    state.lastPointerDownAt = now;
+
+    if (isDoubleClick || e.detail === 2) {
         e.stopPropagation();
         startEditingNode(nodeId);
         render();

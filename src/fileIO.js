@@ -584,7 +584,7 @@ function drawLineLayer(lineCanvas, nodeElements, viewX, viewY) {
         const dx = endX - startX;
         const controlOffset = Math.sign(dx) * Math.min(100, Math.abs(dx) * 0.5);
 
-        ctx.strokeStyle = "#000000";
+        ctx.strokeStyle = "#475569";
         ctx.lineWidth = 3;
         ctx.setLineDash([]);
         ctx.lineCap = "round";

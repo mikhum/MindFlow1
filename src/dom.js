@@ -53,6 +53,9 @@ export function initDomElements() {
         nodeColorPicker: document.getElementById("node-color-picker"),
         nodeColorClearBtn: document.getElementById("node-color-clear"),
         nodeColorPalette: document.getElementById("node-color-palette"),
+        topicAlignControls: document.getElementById("topic-align-controls"),
+        topicAlignCenter: document.getElementById("topic-align-center"),
+        topicAlignLeft: document.getElementById("topic-align-left"),
         nodeCommentTextarea: document.getElementById("node-comment"),
 
         // Help modal

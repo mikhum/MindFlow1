@@ -186,6 +186,17 @@ export function setNodeComment(nodeId, comment) {
 }
 
 /**
+ * Set node text alignment
+ */
+export function setNodeTextAlign(nodeId, align) {
+    if (!state.nodes[nodeId]) return;
+
+    const normalizedAlign = align === "left" ? "left" : "center";
+    state.nodes[nodeId].textAlign = normalizedAlign;
+    saveHistory();
+}
+
+/**
  * Move a node to a new parent (reparenting)
  */
 export function reparentNode(nodeId, newParentId, newAbsolutePos = null) {

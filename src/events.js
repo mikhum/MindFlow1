@@ -7,12 +7,12 @@ import { state } from './state.js';
 import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, isDescendantOf } from './utils.js';
 import { render, renderConnectors, updateNodeStyleControls, showHelp, handleNodePointerDown } from './rendering.js';
-import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
+import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, setNodeTextAlign, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
 import { handleSaveMap, handleNewMap, handleImportFile, handleImportMindMeisterFile, loadMapList, saveAutosave } from './fileIO.js';
 import { handleExportDoc, handleExportPdf } from './fileIO.js';
 import { zoom, resetViewport, handleWheel } from './viewport.js';
 import { navigateGeometrically, centerOnNode, scrollToNode } from './navigation.js';
-import { undo, redo } from './history.js';
+import { undo, redo, saveHistory } from './history.js';
 import { layoutImportedMap } from './layout.js';
 import {
     selectRelationship,
@@ -58,6 +58,8 @@ export function setupEventListeners() {
         nodeColorPicker,
         nodeColorClearBtn,
         nodeColorPalette,
+        topicAlignCenter,
+        topicAlignLeft,
         nodeCommentTextarea,
         helpModal,
         btnCloseHelpModal,
@@ -210,6 +212,22 @@ export function setupEventListeners() {
         });
     }
 
+    if (topicAlignCenter) {
+        topicAlignCenter.addEventListener("click", () => {
+            if (!state.selectedNodeId || state.selectedRelationshipId) return;
+            setNodeTextAlign(state.selectedNodeId, "center");
+            render();
+        });
+    }
+
+    if (topicAlignLeft) {
+        topicAlignLeft.addEventListener("click", () => {
+            if (!state.selectedNodeId || state.selectedRelationshipId) return;
+            setNodeTextAlign(state.selectedNodeId, "left");
+            render();
+        });
+    }
+
     // Resize viewport
     window.addEventListener("resize", renderConnectors);
 }
@@ -288,6 +306,27 @@ function handleWorkspacePointerDown(e) {
  */
 function handleGlobalPointerMove(e) {
     const { workspace } = getDomElements();
+
+    if (state.resizingNodeId) {
+        const rect = workspace.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left - state.viewportTransform.x) / state.viewportTransform.scale;
+        const mouseY = (e.clientY - rect.top - state.viewportTransform.y) / state.viewportTransform.scale;
+        const dx = mouseX - state.resizeStartMouse.x;
+        const dy = mouseY - state.resizeStartMouse.y;
+
+        const resizedNode = state.nodes[state.resizingNodeId];
+        if (resizedNode) {
+            const minWidth = 110;
+            const minHeight = 36;
+            const maxWidth = 900;
+            const maxHeight = 520;
+            resizedNode.width = Math.max(minWidth, Math.min(maxWidth, Math.round(state.resizeStartSize.width + dx * 2)));
+            resizedNode.height = Math.max(minHeight, Math.min(maxHeight, Math.round(state.resizeStartSize.height + dy * 2)));
+            render();
+        }
+        return;
+    }
+
     if (state.linkingSourceId) {
         const rect = workspace.getBoundingClientRect();
         state.linkingMousePos = {
@@ -332,6 +371,16 @@ function handleGlobalPointerMove(e) {
  */
 function handleGlobalPointerUp(e) {
     const { canvas } = getDomElements();
+
+    if (state.resizingNodeId) {
+        state.resizingNodeId = null;
+        state.resizeStartMouse = { x: 0, y: 0 };
+        state.resizeStartSize = { width: 0, height: 0 };
+        saveHistory();
+        render();
+        return;
+    }
+
     if (state.isPanning) {
         state.isPanning = false;
         canvas.classList.remove("grabbing");
@@ -346,7 +395,9 @@ function handleGlobalPointerUp(e) {
  * Check for potential parent node during drag
  */
 function checkPotentialParent(draggedId, absX, absY) {
-    state.hoveredParentId = null;
+    let bestCandidateId = null;
+    let bestScore = Infinity;
+    const candidateDivs = [];
 
     Object.keys(state.nodes).forEach(nodeId => {
         if (nodeId === draggedId || isDescendantOf(draggedId, nodeId)) return;
@@ -355,9 +406,11 @@ function checkPotentialParent(draggedId, absX, absY) {
         const div = document.getElementById(`node-${nodeId}`);
         if (!div) return;
 
+        candidateDivs.push({ nodeId, div });
+
         const nodeWidth = div.offsetWidth;
         const nodeHeight = div.offsetHeight;
-        const tolerance = 50;
+        const tolerance = 28;
 
         if (
             absX >= coords.x - nodeWidth / 2 - tolerance &&
@@ -365,11 +418,17 @@ function checkPotentialParent(draggedId, absX, absY) {
             absY >= coords.y - nodeHeight / 2 - tolerance &&
             absY <= coords.y + nodeHeight / 2 + tolerance
         ) {
-            state.hoveredParentId = nodeId;
-            div.classList.add("potential-parent");
-        } else {
-            div.classList.remove("potential-parent");
+            const score = Math.abs(absX - coords.x) + Math.abs(absY - coords.y);
+            if (score < bestScore) {
+                bestScore = score;
+                bestCandidateId = nodeId;
+            }
         }
+    });
+
+    state.hoveredParentId = bestCandidateId;
+    candidateDivs.forEach(({ nodeId, div }) => {
+        div.classList.toggle("potential-parent", nodeId === bestCandidateId);
     });
 }
 
