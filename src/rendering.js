@@ -16,6 +16,9 @@ export function render() {
     const { nodesContainer, svgOverlay } = getDomElements();
     if (!nodesContainer) return;
 
+    const searchMatchSet = new Set(state.topicSearchMatches || []);
+    const currentSearchMatchId = state.topicSearchMatches?.[state.topicSearchIndex] || null;
+
     if (state.selectedNodeId && isNodeHiddenByCollapsedAncestor(state.selectedNodeId)) {
         let fallbackId = state.selectedNodeId;
         while (fallbackId && isNodeHiddenByCollapsedAncestor(fallbackId)) {
@@ -29,7 +32,7 @@ export function render() {
 
     Object.keys(state.nodes).forEach(nodeId => {
         if (isNodeHiddenByCollapsedAncestor(nodeId)) return;
-        renderNode(nodeId);
+        renderNode(nodeId, searchMatchSet, currentSearchMatchId);
     });
 
     // Update sidebar controls for selected node
@@ -42,7 +45,7 @@ export function render() {
 /**
  * Render a single node
  */
-function renderNode(nodeId) {
+function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
     const { nodesContainer } = getDomElements();
     const node = state.nodes[nodeId];
 
@@ -54,6 +57,13 @@ function renderNode(nodeId) {
     // Apply selected state
     if (state.selectedNodeId === nodeId) {
         nodeDiv.classList.add("selected");
+    }
+
+    if (searchMatchSet?.has(nodeId)) {
+        nodeDiv.classList.add("search-match");
+    }
+    if (currentSearchMatchId === nodeId) {
+        nodeDiv.classList.add("search-current");
     }
 
     // Apply editing state

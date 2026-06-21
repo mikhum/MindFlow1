@@ -8,8 +8,8 @@ import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, isDescendantOf } from './utils.js';
 import { render, renderConnectors, updateNodeStyleControls, showHelp, handleNodePointerDown } from './rendering.js';
 import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
-import { handleSaveMap, handleNewMap, handleExportFile, handleImportFile, handleImportMindMeisterFile, loadMapList, saveAutosave } from './fileIO.js';
-import { handleExportDoc } from './fileIO.js';
+import { handleSaveMap, handleNewMap, handleImportFile, handleImportMindMeisterFile, loadMapList, saveAutosave } from './fileIO.js';
+import { handleExportDoc, handleExportPdf } from './fileIO.js';
 import { zoom, resetViewport, handleWheel } from './viewport.js';
 import { navigateGeometrically, centerOnNode, scrollToNode } from './navigation.js';
 import { undo, redo } from './history.js';
@@ -45,11 +45,14 @@ export function setupEventListeners() {
         btnNewMap,
         btnSaveMap,
         btnArrangeMap,
-        btnExportFile,
         btnExportDoc,
+        btnExportPdf,
         btnOpenMindflow,
-        btnImportFile,
         btnImportMindMeister,
+        topicSearchInput,
+        topicSearchPrev,
+        topicSearchNext,
+        topicSearchStatus,
         fileImportInput,
         fileImportMindMeisterInput,
         nodeColorPicker,
@@ -125,19 +128,43 @@ export function setupEventListeners() {
     }
 
     // File Import/Export
-    btnExportFile.addEventListener("click", handleExportFile);
     if (btnExportDoc) {
         btnExportDoc.addEventListener("click", handleExportDoc);
+    }
+    if (btnExportPdf) {
+        btnExportPdf.addEventListener("click", handleExportPdf);
     }
     if (btnOpenMindflow) {
         btnOpenMindflow.addEventListener("click", () => fileImportInput.click());
     }
-    btnImportFile.addEventListener("click", () => fileImportInput.click());
     if (btnImportMindMeister) {
         btnImportMindMeister.addEventListener("click", () => fileImportMindMeisterInput.click());
     }
     fileImportInput.addEventListener("change", handleImportFile);
     fileImportMindMeisterInput.addEventListener("change", handleImportMindMeisterFile);
+
+    if (topicSearchInput) {
+        topicSearchInput.addEventListener("input", () => {
+            applyTopicSearch(topicSearchInput.value);
+        });
+        topicSearchInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    goToSearchMatch(-1);
+                } else {
+                    goToSearchMatch(1);
+                }
+            }
+        });
+    }
+    if (topicSearchPrev) {
+        topicSearchPrev.addEventListener("click", () => goToSearchMatch(-1));
+    }
+    if (topicSearchNext) {
+        topicSearchNext.addEventListener("click", () => goToSearchMatch(1));
+    }
+    updateSearchStatus(topicSearchStatus);
 
     // Node color controls
     if (nodeColorPicker) {
@@ -428,6 +455,28 @@ function finishDraggingNode(e) {
  * Handle keyboard input
  */
 function handleKeyDown(e) {
+    const { topicSearchInput } = getDomElements();
+    const activeElement = document.activeElement;
+    const isInputFocused = !!activeElement && (
+        activeElement.tagName === "INPUT" ||
+        activeElement.tagName === "TEXTAREA" ||
+        activeElement.tagName === "SELECT" ||
+        activeElement.isContentEditable
+    );
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        if (topicSearchInput) {
+            topicSearchInput.focus();
+            topicSearchInput.select();
+        }
+        return;
+    }
+
+    if (isInputFocused && !state.editingNodeId) {
+        return;
+    }
+
     const isEditing = state.editingNodeId !== null;
 
     if (e.ctrlKey || e.metaKey) {
@@ -579,4 +628,91 @@ function handleKeyDown(e) {
             }
             break;
     }
+}
+
+function applyTopicSearch(rawQuery) {
+    const query = String(rawQuery || "").trim().toLowerCase();
+    state.topicSearchQuery = rawQuery || "";
+
+    if (!query) {
+        state.topicSearchMatches = [];
+        state.topicSearchIndex = -1;
+        render();
+        updateSearchStatus();
+        return;
+    }
+
+    state.topicSearchMatches = Object.keys(state.nodes).filter((nodeId) => {
+        const nodeText = String(state.nodes[nodeId]?.text || "").toLowerCase();
+        return nodeText.includes(query);
+    });
+
+    state.topicSearchIndex = state.topicSearchMatches.length > 0 ? 0 : -1;
+    focusCurrentSearchMatch();
+    updateSearchStatus();
+}
+
+function goToSearchMatch(direction) {
+    const query = String(state.topicSearchQuery || "").trim().toLowerCase();
+    if (!query) return;
+
+    // Recompute against latest node texts in case map content changed after initial search.
+    state.topicSearchMatches = Object.keys(state.nodes).filter((nodeId) => {
+        const nodeText = String(state.nodes[nodeId]?.text || "").toLowerCase();
+        return nodeText.includes(query);
+    });
+
+    if (state.topicSearchMatches.length === 0) {
+        state.topicSearchIndex = -1;
+        render();
+        updateSearchStatus();
+        return;
+    }
+
+    const currentIndex = state.topicSearchIndex >= 0 ? state.topicSearchIndex : 0;
+    const count = state.topicSearchMatches.length;
+    state.topicSearchIndex = (currentIndex + direction + count) % count;
+    focusCurrentSearchMatch();
+    updateSearchStatus();
+}
+
+function focusCurrentSearchMatch() {
+    const nodeId = state.topicSearchMatches[state.topicSearchIndex];
+    if (!nodeId || !state.nodes[nodeId]) {
+        render();
+        return;
+    }
+
+    revealNodeForSearch(nodeId);
+    state.selectedNodeId = nodeId;
+    state.selectedRelationshipId = null;
+    render();
+    scrollToNode(nodeId);
+}
+
+function revealNodeForSearch(nodeId) {
+    let currentParentId = state.nodes[nodeId]?.parent;
+    while (currentParentId && state.nodes[currentParentId]) {
+        state.nodes[currentParentId].collapsed = false;
+        currentParentId = state.nodes[currentParentId].parent;
+    }
+}
+
+function updateSearchStatus(explicitStatusEl = null) {
+    const { topicSearchStatus } = getDomElements();
+    const statusEl = explicitStatusEl || topicSearchStatus;
+    if (!statusEl) return;
+
+    const query = String(state.topicSearchQuery || "").trim();
+    if (!query) {
+        statusEl.textContent = "No active search.";
+        return;
+    }
+
+    if (state.topicSearchMatches.length === 0) {
+        statusEl.textContent = "No matches found.";
+        return;
+    }
+
+    statusEl.textContent = `${state.topicSearchIndex + 1} of ${state.topicSearchMatches.length} matches`;
 }

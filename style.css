@@ -176,6 +176,27 @@ body, html {
     gap: 8px;
 }
 
+.topic-search-input {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    background: #ffffff;
+    font-family: inherit;
+}
+
+.topic-search-input:focus {
+    outline: none;
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.search-nav-btn {
+    min-height: 38px;
+}
+
 .form-label {
     display: block;
     margin-bottom: 10px;
@@ -436,7 +457,7 @@ body, html {
 
 .connector-line {
     fill: none;
-    stroke: #94a3b8; /* Darker slate grey for higher visibility */
+    stroke: #000000;
     stroke-width: 3px;
     stroke-linecap: round;
     transition: stroke var(--transition-fast), stroke-width var(--transition-fast);
@@ -494,6 +515,15 @@ body, html {
 .node.selected {
     border-color: var(--accent-color);
     box-shadow: var(--shadow-glow), var(--shadow-lg);
+}
+
+.node.search-match {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.45), var(--shadow-lg);
+}
+
+.node.search-current {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.28), var(--shadow-lg);
 }
 
 .node.editing {

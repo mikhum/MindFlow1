@@ -9,6 +9,8 @@ import { centerOnNode } from './navigation.js';
 import { layoutImportedMap, parseFreemindXml } from './layout.js';
 import { saveHistory } from './history.js';
 import { getDomElements } from './dom.js';
+import { getEdgePoint } from './utils.js';
+import html2canvas from '../node_modules/html2canvas/dist/html2canvas.esm.js';
 
 const DEFAULT_ROOT_COLOR = "#0ea5e9";
 
@@ -249,30 +251,7 @@ export function handleNewMap() {
 }
 
 /**
- * Export map as JSON file
- */
-export function handleExportFile() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-        format: "mindflow",
-        version: "1.0",
-        name: state.currentMapName || "My Mindmap",
-        nodes: state.nodes,
-        relationships: state.relationships
-    }, null, 2));
-    
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    
-    const filename = (state.currentMapName || state.nodes.root.text || "mindmap").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".mindmap";
-    downloadAnchor.setAttribute("download", filename);
-    
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-}
-
-/**
- * Import map from JSON file
+ * Import map from local MindFlow file
  */
 export function handleImportFile(e) {
     const file = e.target.files[0];
@@ -291,10 +270,10 @@ export function handleImportFile(e) {
                     name: data.name || file.name.replace(/\.[^/.]+$/, "")
                 }, file.name, isMindFlowFile);
             } else {
-                throw new Error("Invalid mindmap JSON format: root node is missing.");
+                throw new Error("Invalid MindFlow file format: root node is missing.");
             }
         } catch (err) {
-            console.error("Error importing JSON mindmap file:", err);
+            console.error("Error importing MindFlow file:", err);
         }
     };
     reader.readAsText(file);
@@ -372,16 +351,273 @@ export function handleExportDoc() {
 }
 
 /**
+ * Export map as PDF document using browser print flow
+ */
+export function handleExportPdf() {
+    exportMindmapPdf().catch((err) => {
+        console.error("PDF export failed:", err);
+        alert("Could not generate PDF. Please try again.");
+    });
+}
+
+async function exportMindmapPdf() {
+    const mapTitle = state.currentMapName || state.nodes.root?.text || "mindmap";
+    const { nodesContainer, svgOverlay } = getDomElements();
+    const nodeElements = Array.from(nodesContainer?.querySelectorAll(".node") || []);
+    const orientationSetting = getDomElements().pdfOrientationSelect?.value === "portrait" ? "portrait" : "landscape";
+
+    if (!nodesContainer || !svgOverlay || nodeElements.length === 0) {
+        throw new Error("No visible nodes to export");
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodeElements.forEach((nodeEl) => {
+        const x = parseFloat(nodeEl.style.left || "0");
+        const y = parseFloat(nodeEl.style.top || "0");
+        const width = nodeEl.offsetWidth;
+        const height = nodeEl.offsetHeight;
+        minX = Math.min(minX, x - width / 2);
+        maxX = Math.max(maxX, x + width / 2);
+        minY = Math.min(minY, y - height / 2);
+        maxY = Math.max(maxY, y + height / 2);
+    });
+
+    const padding = 120;
+    const viewX = Math.floor(minX - padding);
+    const viewY = Math.floor(minY - padding);
+    const viewWidth = Math.max(600, Math.ceil(maxX - minX + padding * 2));
+    const viewHeight = Math.max(400, Math.ceil(maxY - minY + padding * 2));
+
+    const stage = document.createElement("div");
+    stage.style.position = "fixed";
+    stage.style.left = "-100000px";
+    stage.style.top = "0";
+    stage.style.width = `${viewWidth}px`;
+    stage.style.height = `${viewHeight}px`;
+    stage.style.backgroundColor = "#f8fafc";
+    stage.style.backgroundImage = "radial-gradient(#cbd5e1 1.3px, transparent 1.3px)";
+    stage.style.backgroundSize = "24px 24px";
+    stage.style.overflow = "hidden";
+
+    const lineCanvas = document.createElement("canvas");
+    lineCanvas.width = viewWidth;
+    lineCanvas.height = viewHeight;
+    lineCanvas.style.position = "absolute";
+    lineCanvas.style.left = "0";
+    lineCanvas.style.top = "0";
+    lineCanvas.style.width = `${viewWidth}px`;
+    lineCanvas.style.height = `${viewHeight}px`;
+    lineCanvas.style.zIndex = "1";
+    drawLineLayer(lineCanvas, nodeElements, viewX, viewY);
+    stage.appendChild(lineCanvas);
+
+    const nodesLayer = document.createElement("div");
+    nodesLayer.style.position = "absolute";
+    nodesLayer.style.left = `${-viewX}px`;
+    nodesLayer.style.top = `${-viewY}px`;
+    nodesLayer.style.width = "0";
+    nodesLayer.style.height = "0";
+    nodesLayer.style.overflow = "visible";
+
+    nodeElements.forEach((nodeEl) => {
+        const clone = nodeEl.cloneNode(true);
+        clone.classList.remove("selected", "editing", "dragging", "potential-parent");
+        clone.querySelectorAll(".node-collapse-toggle").forEach((button) => button.remove());
+        clone.querySelectorAll("[contenteditable]").forEach((editableEl) => {
+            editableEl.removeAttribute("contenteditable");
+            editableEl.classList.remove("editing-text", "node-text-edit");
+        });
+        nodesLayer.appendChild(clone);
+    });
+
+    stage.appendChild(nodesLayer);
+    document.body.appendChild(stage);
+
+    try {
+        const canvas = await html2canvas(stage, {
+            backgroundColor: "#f8fafc",
+            scale: 2,
+            width: viewWidth,
+            height: viewHeight,
+            useCORS: true,
+            logging: false
+        });
+
+        const imageData = canvas.toDataURL("image/png");
+        const pxToPt = 72 / 96;
+        const sourceWidthPt = Math.max(200, Math.round(viewWidth * pxToPt));
+        const sourceHeightPt = Math.max(200, Math.round(viewHeight * pxToPt));
+
+        let pageWidthPt = sourceWidthPt;
+        let pageHeightPt = sourceHeightPt;
+
+        if (orientationSetting === "portrait" && sourceWidthPt > sourceHeightPt) {
+            pageWidthPt = sourceHeightPt;
+            pageHeightPt = sourceWidthPt;
+        } else if (orientationSetting === "landscape" && sourceHeightPt > sourceWidthPt) {
+            pageWidthPt = sourceHeightPt;
+            pageHeightPt = sourceWidthPt;
+        }
+
+        const JsPdfCtor = window.jspdf?.jsPDF;
+        if (!JsPdfCtor) {
+            throw new Error("jsPDF is not available");
+        }
+
+        const pdf = new JsPdfCtor({
+            orientation: orientationSetting,
+            unit: "pt",
+            format: [pageWidthPt, pageHeightPt],
+            compress: true
+        });
+
+        const margin = 18;
+        const availableWidth = Math.max(50, pageWidthPt - margin * 2);
+        const availableHeight = Math.max(50, pageHeightPt - margin * 2 - 18);
+        const scale = Math.min(availableWidth / sourceWidthPt, availableHeight / sourceHeightPt);
+        const drawWidth = sourceWidthPt * scale;
+        const drawHeight = sourceHeightPt * scale;
+        const drawX = (pageWidthPt - drawWidth) / 2;
+        const drawY = 14 + (availableHeight - drawHeight) / 2;
+
+        pdf.setFontSize(10);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(state.nodes.root?.text || mapTitle, margin, 11);
+        pdf.addImage(imageData, "PNG", drawX, drawY, drawWidth, drawHeight, undefined, "FAST");
+
+        const filename = (mapTitle || "mindmap").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".pdf";
+        pdf.save(filename);
+    } finally {
+        stage.remove();
+    }
+}
+
+function drawLineLayer(lineCanvas, nodeElements, viewX, viewY) {
+    const ctx = lineCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const nodeById = {};
+    nodeElements.forEach((nodeEl) => {
+        const nodeId = nodeEl.id?.replace("node-", "");
+        if (!nodeId) return;
+        nodeById[nodeId] = {
+            x: parseFloat(nodeEl.style.left || "0"),
+            y: parseFloat(nodeEl.style.top || "0"),
+            width: nodeEl.offsetWidth,
+            height: nodeEl.offsetHeight
+        };
+    });
+
+    ctx.save();
+
+    // Parent-child connectors
+    Object.keys(nodeById).forEach((nodeId) => {
+        const node = state.nodes[nodeId];
+        if (!node?.parent || !nodeById[node.parent]) return;
+
+        const child = nodeById[nodeId];
+        const parent = nodeById[node.parent];
+
+        let startX;
+        let startY;
+        let endX;
+        let endY;
+
+        if (child.x > parent.x) {
+            startX = parent.x + parent.width / 2;
+            startY = parent.y;
+            endX = child.x - child.width / 2;
+            endY = child.y;
+        } else {
+            startX = parent.x - parent.width / 2;
+            startY = parent.y;
+            endX = child.x + child.width / 2;
+            endY = child.y;
+        }
+
+        const dx = endX - startX;
+        const controlOffset = Math.sign(dx) * Math.min(100, Math.abs(dx) * 0.5);
+
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([]);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(startX - viewX, startY - viewY);
+        ctx.bezierCurveTo(
+            startX + controlOffset - viewX,
+            startY - viewY,
+            endX - controlOffset - viewX,
+            endY - viewY,
+            endX - viewX,
+            endY - viewY
+        );
+        ctx.stroke();
+    });
+
+    // Free relationships
+    state.relationships.forEach((rel) => {
+        const fromNode = nodeById[rel.fromId];
+        const toNode = nodeById[rel.toId];
+        if (!fromNode || !toNode) return;
+
+        const startPort = getEdgePoint(
+            { x: fromNode.x, y: fromNode.y },
+            { x: toNode.x, y: toNode.y },
+            fromNode.width,
+            fromNode.height
+        );
+        const endPort = getEdgePoint(
+            { x: toNode.x, y: toNode.y },
+            { x: fromNode.x, y: fromNode.y },
+            toNode.width,
+            toNode.height
+        );
+
+        const dx = endPort.x - startPort.x;
+        const dy = endPort.y - startPort.y;
+        const length = Math.hypot(dx, dy);
+        if (length < 10) return;
+
+        const perpendicularX = -dy / length;
+        const perpendicularY = dx / length;
+        const offset = Math.min(80, length * 0.2);
+        const controlX = (startPort.x + endPort.x) / 2 + perpendicularX * offset;
+        const controlY = (startPort.y + endPort.y) / 2 + perpendicularY * offset;
+
+        ctx.strokeStyle = rel.color || "#f43f5e";
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(startPort.x - viewX, startPort.y - viewY);
+        ctx.quadraticCurveTo(controlX - viewX, controlY - viewY, endPort.x - viewX, endPort.y - viewY);
+        ctx.stroke();
+    });
+
+    ctx.restore();
+}
+
+/**
  * Generate HTML for Word export
  */
 function generateWordHtml() {
+    const mapTitle = state.currentMapName || state.nodes.root?.text || "mindmap";
     const docParts = [];
     docParts.push("<!DOCTYPE html>");
     docParts.push("<html>");
-    docParts.push("<head><meta charset='utf-8'></head>");
+    docParts.push(`<head><meta charset='utf-8'><title>${escapeHtml(mapTitle)}</title></head>`);
     docParts.push("<body>");
-    
-    appendNodeHierarchyToDoc("root", 0, docParts);
+
+    if (state.nodes.root?.text) {
+        docParts.push(`<p style="font-size: 1.6em; font-weight: 700; margin: 0 0 0.75em 0;">${escapeHtml(state.nodes.root.text)}</p>`);
+    }
+
+    appendNodeHierarchyToDoc("root", 1, docParts);
     
     docParts.push("</body>");
     docParts.push("</html>");
@@ -395,19 +631,19 @@ function appendNodeHierarchyToDoc(nodeId, level, docParts) {
     const node = state.nodes[nodeId];
     if (!node) return;
 
-    const headingLevel = Math.min(level + 1, 6);
-    docParts.push(`<h${headingLevel}>${escapeHtml(node.text)}</h${headingLevel}>`);
+    Object.values(state.nodes)
+        .filter((child) => child.parent === nodeId)
+        .sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0))
+        .forEach((child) => {
+            const headingLevel = Math.min(level, 6);
+            docParts.push(`<h${headingLevel}>${escapeHtml(child.text)}</h${headingLevel}>`);
 
-    if (node.comment) {
-        docParts.push(`<p><em>${escapeHtml(node.comment)}</em></p>`);
-    }
+            if (child.comment) {
+                docParts.push(`<p><em>${escapeHtml(child.comment)}</em></p>`);
+            }
 
-    // Find and render children
-    Object.keys(state.nodes).forEach(id => {
-        if (state.nodes[id].parent === nodeId) {
-            appendNodeHierarchyToDoc(id, level + 1, docParts);
-        }
-    });
+            appendNodeHierarchyToDoc(child.id, level + 1, docParts);
+        });
 }
 
 /**

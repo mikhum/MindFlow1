@@ -51,16 +51,37 @@
                     </div>
                 </div>
 
+                <div class="sidebar-section">
+                    <h3>Topic Search</h3>
+                    <input type="search" id="topic-search-input" class="topic-search-input" placeholder="Search text in topics..." aria-label="Search topics">
+                    <div class="button-group-row" style="margin-top: 8px;">
+                        <button class="btn btn-outline search-nav-btn" id="topic-search-prev" type="button" title="Previous match">
+                            <i class="fa-solid fa-chevron-up"></i> Prev
+                        </button>
+                        <button class="btn btn-outline search-nav-btn" id="topic-search-next" type="button" title="Next match">
+                            <i class="fa-solid fa-chevron-down"></i> Next
+                        </button>
+                    </div>
+                    <p class="field-hint" id="topic-search-status">No active search.</p>
+                </div>
+
                 <!-- Local File Import/Export -->
                 <div class="sidebar-section">
                     <h3>Local Backup</h3>
                     <div class="button-group-row">
-                        <button class="btn btn-outline" id="btn-export-file" title="Export as JSON">
-                            <i class="fa-solid fa-download"></i> Export JSON
-                        </button>
                         <button class="btn btn-outline" id="btn-export-doc" title="Export as Word document">
                             <i class="fa-solid fa-file-word"></i> Export Word
                         </button>
+                        <button class="btn btn-outline" id="btn-export-pdf" title="Export as PDF document">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                    <div class="button-group-row">
+                        <label class="form-label" for="pdf-orientation" style="margin: 0; min-width: 88px; align-self: center;">PDF format</label>
+                        <select id="pdf-orientation" class="btn btn-outline" title="Choose PDF orientation" style="flex: 1; text-align: left;">
+                            <option value="landscape" selected>Landscape (recommended)</option>
+                            <option value="portrait">Portrait</option>
+                        </select>
                     </div>
                     <div class="button-group-row">
                         <button class="btn btn-outline" id="btn-open-mindflow" title="Open a saved MindFlow file (.mindflow)">
@@ -68,16 +89,11 @@
                         </button>
                     </div>
                     <div class="button-group-row">
-                        <button class="btn btn-outline" id="btn-import-file" title="Import JSON or MindFlow file">
-                            <i class="fa-solid fa-upload"></i> Import JSON
-                        </button>
-                    </div>
-                    <div class="button-group-row">
                         <button class="btn btn-outline" id="btn-import-mindmeister" title="Import Freemind (.mm)">
                             <i class="fa-solid fa-file-import"></i> Import Freemind
                         </button>
                     </div>
-                    <input type="file" id="file-import-input" accept=".json,.mindmap,.mindflow" style="display: none;">
+                    <input type="file" id="file-import-input" accept=".mindflow" style="display: none;">
                     <input type="file" id="file-import-mindmeister-input" accept=".mm,.xml" style="display: none;">
                 </div>
 
@@ -234,6 +250,7 @@
         </div>
     </div>
 
+    <script src="node_modules/jspdf/dist/jspdf.umd.min.js"></script>
     <!-- Core App JS (ES6 Module) -->
     <script type="module" src="src/app.js"></script>
 </body>

@@ -59,10 +59,8 @@ const btnNewMap = document.getElementById("btn-new-map");
 const btnSaveMap = document.getElementById("btn-save-map");
 const btnArrangeMap = document.getElementById("btn-arrange-map");
 const savedMapsList = document.getElementById("saved-maps-list");
-const btnExportFile = document.getElementById("btn-export-file");
 const btnExportDoc = document.getElementById("btn-export-doc");
 const btnOpenMindflow = document.getElementById("btn-open-mindflow");
-const btnImportFile = document.getElementById("btn-import-file");
 const btnImportMindMeister = document.getElementById("btn-import-mindmeister");
 const fileImportInput = document.getElementById("file-import-input");
 const fileImportMindMeisterInput = document.getElementById("file-import-mindmeister-input");
@@ -173,14 +171,12 @@ function setupEventListeners() {
     }
     
     // File Import/Export
-    btnExportFile.addEventListener("click", handleExportFile);
     if (btnExportDoc) {
         btnExportDoc.addEventListener("click", handleExportDoc);
     }
     if (btnOpenMindflow) {
         btnOpenMindflow.addEventListener("click", () => fileImportInput.click());
     }
-    btnImportFile.addEventListener("click", () => fileImportInput.click());
     if (btnImportMindMeister) {
         btnImportMindMeister.addEventListener("click", () => fileImportMindMeisterInput.click());
     }
@@ -1559,28 +1555,7 @@ function handleNewMap() {
     centerOnNode("root");
 }
 
-// Export as local JSON file
-function handleExportFile() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-        format: "mindflow",
-        version: "1.0",
-        name: currentMapName || "My Mindmap",
-        nodes: nodes,
-        relationships: relationships
-    }, null, 2));
-    
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    
-    const filename = (currentMapName || nodes.root.text || "mindmap").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".mindmap";
-    downloadAnchor.setAttribute("download", filename);
-    
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-}
-
-// Import from local JSON file
+// Import from local MindFlow file
 function handleImportFile(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1598,10 +1573,10 @@ function handleImportFile(e) {
                     name: data.name || file.name.replace(/\.[^/.]+$/, "")
                 }, file.name, isMindFlowFile);
             } else {
-                throw new Error("Invalid mindmap JSON format: root node is missing.");
+                throw new Error("Invalid MindFlow file format: root node is missing.");
             }
         } catch (err) {
-            alert("Error importing JSON mindmap file: " + err.message);
+            alert("Error importing MindFlow file: " + err.message);
         }
     };
     reader.readAsText(file);
@@ -1865,8 +1840,10 @@ function generateWordHtml() {
     const docParts = [];
     docParts.push("<!DOCTYPE html>");
     docParts.push("<html><head><meta charset=\"UTF-8\"><title>" + escapeHtml(mapTitle) + "</title></head><body>");
-    docParts.push("<h1>" + escapeHtml(nodes.root.text) + "</h1>");
-    appendNodeHierarchyToDoc("root", 2, docParts);
+    if (nodes.root.text) {
+        docParts.push("<p style=\"font-size: 1.6em; font-weight: 700; margin: 0 0 0.75em 0;\">" + escapeHtml(nodes.root.text) + "</p>");
+    }
+    appendNodeHierarchyToDoc("root", 1, docParts);
     docParts.push("</body></html>");
     return docParts.join("");
 }
@@ -1879,11 +1856,7 @@ function appendNodeHierarchyToDoc(nodeId, level, docParts) {
     children.forEach(child => {
         const headingLevel = Math.min(level, 6);
         const escapedText = escapeHtml(child.text);
-        if (headingLevel <= 6) {
-            docParts.push("<h" + headingLevel + ">" + escapedText + "</h" + headingLevel + ">");
-        } else {
-            docParts.push("<p style=\"font-weight:700; margin:0;\">" + escapedText + "</p>");
-        }
+        docParts.push("<h" + headingLevel + ">" + escapedText + "</h" + headingLevel + ">");
         if (child.comment) {
             docParts.push("<p style=\"margin: 8px 0; font-style: italic; color: #666;\"><strong>Note:</strong> " + escapeHtml(child.comment) + "</p>");
         }

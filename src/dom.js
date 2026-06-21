@@ -34,12 +34,16 @@ export function initDomElements() {
         btnNewMap: document.getElementById("btn-new-map"),
         btnSaveMap: document.getElementById("btn-save-map"),
         btnArrangeMap: document.getElementById("btn-arrange-map"),
-        btnExportFile: document.getElementById("btn-export-file"),
         btnExportDoc: document.getElementById("btn-export-doc"),
+        btnExportPdf: document.getElementById("btn-export-pdf"),
+        pdfOrientationSelect: document.getElementById("pdf-orientation"),
         btnOpenMindflow: document.getElementById("btn-open-mindflow"),
-        btnImportFile: document.getElementById("btn-import-file"),
         btnImportMindMeister: document.getElementById("btn-import-mindmeister"),
         savedMapsList: document.getElementById("saved-maps-list"),
+        topicSearchInput: document.getElementById("topic-search-input"),
+        topicSearchPrev: document.getElementById("topic-search-prev"),
+        topicSearchNext: document.getElementById("topic-search-next"),
+        topicSearchStatus: document.getElementById("topic-search-status"),
 
         // File inputs
         fileImportInput: document.getElementById("file-import-input"),

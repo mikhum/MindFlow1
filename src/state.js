@@ -43,7 +43,12 @@ export const state = {
 
     // --- File & Map Info ---
     currentMapName: "",
-    saveFileHandle: null
+    saveFileHandle: null,
+
+    // --- Topic Search ---
+    topicSearchQuery: "",
+    topicSearchMatches: [],
+    topicSearchIndex: -1
 };
 
 export const constants = {
@@ -76,4 +81,7 @@ export function resetState() {
     state.redoStack = [];
     state.currentMapName = "";
     state.saveFileHandle = null;
+    state.topicSearchQuery = "";
+    state.topicSearchMatches = [];
+    state.topicSearchIndex = -1;
 }
