@@ -6,7 +6,7 @@
 import { state } from './state.js';
 import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, getContrastingTextColor, getEdgePoint, getNodeDepth } from './utils.js';
-import { finishEditingNode, selectNode, startEditingNode } from './nodes.js';
+import { finishEditingNode, selectNode, startEditingNode, getChildren, isNodeHiddenByCollapsedAncestor, toggleNodeCollapsed } from './nodes.js';
 import { selectRelationship, deleteRelationship, startLinkingMode, createRelationship, cancelLinkingMode } from './relationships.js';
 
 /**
@@ -16,9 +16,19 @@ export function render() {
     const { nodesContainer, svgOverlay } = getDomElements();
     if (!nodesContainer) return;
 
+    if (state.selectedNodeId && isNodeHiddenByCollapsedAncestor(state.selectedNodeId)) {
+        let fallbackId = state.selectedNodeId;
+        while (fallbackId && isNodeHiddenByCollapsedAncestor(fallbackId)) {
+            fallbackId = state.nodes[fallbackId]?.parent || null;
+        }
+        state.selectedNodeId = fallbackId || "root";
+        state.selectedRelationshipId = null;
+    }
+
     nodesContainer.innerHTML = "";
 
     Object.keys(state.nodes).forEach(nodeId => {
+        if (isNodeHiddenByCollapsedAncestor(nodeId)) return;
         renderNode(nodeId);
     });
 
@@ -62,49 +72,80 @@ function renderNode(nodeId) {
     }
 
     // Create text content
-    let content = "";
-    if (state.editingNodeId === nodeId) {
-        content = `<textarea class="node-text-edit">${escapeHtml(node.text)}</textarea>`;
-    } else {
-        content = `<span class="node-text">${escapeHtml(node.text)}</span>`;
-    }
+    const isEditing = state.editingNodeId === nodeId;
+    const displayText = isEditing && typeof state.editingBuffer === "string"
+        ? state.editingBuffer
+        : node.text;
+    let content = isEditing
+        ? `<span class="node-text editing-text node-text-edit" contenteditable="true" spellcheck="false" role="textbox" aria-label="Edit node text">${escapeHtml(displayText || " ")}</span>`
+        : `<span class="node-text">${escapeHtml(displayText || " ")}</span>`;
 
     // Add comment indicator if present
     if (node.comment) {
         content += `<span class="node-comment-indicator" title="${escapeHtml(node.comment)}">💬</span>`;
     }
 
+    const childCount = getChildren(nodeId).length;
+    if (childCount > 0) {
+        const isCollapsed = !!node.collapsed;
+        const toggleLabel = isCollapsed ? "+" : "-";
+        const toggleTitle = isCollapsed ? "Show children" : "Hide children";
+        content += `<button class="node-collapse-toggle" type="button" aria-label="${toggleTitle}" title="${toggleTitle}">${toggleLabel}</button>`;
+    }
+
     nodeDiv.innerHTML = content;
 
     // Attach event listeners
     nodeDiv.addEventListener("pointerdown", (e) => handleNodePointerDown(e, nodeId));
-    nodeDiv.addEventListener("dblclick", () => startEditingNode(nodeId));
+    nodeDiv.addEventListener("dblclick", () => {
+        startEditingNode(nodeId);
+        render();
+    });
 
-    // Handle editing
-    if (state.editingNodeId === nodeId) {
+    if (isEditing) {
         setTimeout(() => {
-            const textarea = nodeDiv.querySelector(".node-text-edit");
-            if (textarea) {
-                textarea.focus();
-                textarea.select();
-                
-                const commitEdit = () => {
-                    finishEditingNode(nodeId, textarea.value);
-                    render();
-                };
+            const editor = nodeDiv.querySelector(".node-text-edit");
+            if (!editor) return;
 
-                textarea.addEventListener("blur", commitEdit);
-                textarea.addEventListener("keydown", (e) => {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        commitEdit();
-                    } else if (e.key === "Escape") {
-                        state.editingNodeId = null;
-                        render();
-                    }
-                });
+            editor.focus();
+            const selection = window.getSelection();
+            if (selection) {
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                selection.removeAllRanges();
+                selection.addRange(range);
             }
+
+            editor.addEventListener("input", () => {
+                state.editingBuffer = editor.textContent || "";
+            });
+
+            editor.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    finishEditingNode(nodeId, editor.textContent || "");
+                    render();
+                } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    state.editingNodeId = null;
+                    state.editingBuffer = null;
+                    state.editingReplaceOnType = false;
+                    render();
+                }
+            });
         }, 0);
+    }
+
+    const collapseToggle = nodeDiv.querySelector(".node-collapse-toggle");
+    if (collapseToggle) {
+        collapseToggle.addEventListener("pointerdown", (e) => {
+            e.stopPropagation();
+        });
+        collapseToggle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleNodeCollapsed(nodeId);
+            render();
+        });
     }
 
     nodesContainer.appendChild(nodeDiv);
@@ -187,8 +228,11 @@ export function renderConnectors() {
     nodesContainer.querySelectorAll(".relationship-delete-btn").forEach((button) => button.remove());
 
     Object.keys(state.nodes).forEach((nodeId) => {
+        if (isNodeHiddenByCollapsedAncestor(nodeId)) return;
+
         const node = state.nodes[nodeId];
         if (!node.parent) return;
+        if (isNodeHiddenByCollapsedAncestor(node.parent)) return;
 
         const childDiv = document.getElementById(`node-${nodeId}`);
         const parentDiv = document.getElementById(`node-${node.parent}`);
@@ -228,6 +272,8 @@ export function renderConnectors() {
     });
 
     state.relationships.forEach((rel) => {
+        if (isNodeHiddenByCollapsedAncestor(rel.fromId) || isNodeHiddenByCollapsedAncestor(rel.toId)) return;
+
         const fromDiv = document.getElementById(`node-${rel.fromId}`);
         const toDiv = document.getElementById(`node-${rel.toId}`);
         if (!fromDiv || !toDiv) return;
@@ -376,7 +422,22 @@ function escapeHtml(text) {
  */
 export function handleNodePointerDown(e, nodeId) {
     if (e.button !== 0) return; // Only left-click
+
+    if (e.detail === 2) {
+        e.stopPropagation();
+        startEditingNode(nodeId);
+        render();
+        return;
+    }
+
     if (state.editingNodeId === nodeId) return;
+    if (state.editingNodeId && state.editingNodeId !== nodeId) {
+        const editedNodeId = state.editingNodeId;
+        const editedText = typeof state.editingBuffer === "string"
+            ? state.editingBuffer
+            : state.nodes[editedNodeId]?.text || "";
+        finishEditingNode(editedNodeId, editedText);
+    }
 
     e.stopPropagation();
 

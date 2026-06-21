@@ -7,13 +7,15 @@
 export const state = {
     // --- Node & Relationship Data ---
     nodes: {
-        "root": { id: "root", text: "Central Topic", parent: null, x: 0, y: 0 }
+        "root": { id: "root", text: "Central Topic", parent: null, x: 0, y: 0, color: { bg: "#0ea5e9" } }
     },
     relationships: [],
 
     // --- Selection & Editing ---
     selectedNodeId: "root",
     editingNodeId: null,
+    editingBuffer: null,
+    editingReplaceOnType: false,
     selectedRelationshipId: null,
 
     // --- Viewport & Transform ---
@@ -51,11 +53,13 @@ export const constants = {
 // Helper functions for state mutations
 export function resetState() {
     state.nodes = {
-        "root": { id: "root", text: "Central Topic", parent: null, x: 0, y: 0 }
+        "root": { id: "root", text: "Central Topic", parent: null, x: 0, y: 0, color: { bg: "#0ea5e9" } }
     };
     state.relationships = [];
     state.selectedNodeId = "root";
     state.editingNodeId = null;
+    state.editingBuffer = null;
+    state.editingReplaceOnType = false;
     state.selectedRelationshipId = null;
     state.viewportTransform = { x: 0, y: 0, scale: 1 };
     state.isPanning = false;

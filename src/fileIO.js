@@ -10,6 +10,18 @@ import { layoutImportedMap, parseFreemindXml } from './layout.js';
 import { saveHistory } from './history.js';
 import { getDomElements } from './dom.js';
 
+const DEFAULT_ROOT_COLOR = "#0ea5e9";
+
+function ensureRootColor() {
+    if (!state.nodes?.root) return;
+    if (!state.nodes.root.color) {
+        state.nodes.root.color = {};
+    }
+    if (!state.nodes.root.color.bg) {
+        state.nodes.root.color.bg = DEFAULT_ROOT_COLOR;
+    }
+}
+
 /**
  * Save current state to LocalStorage autosave
  */
@@ -55,7 +67,6 @@ export async function handleSaveMap() {
             } catch (err) {
                 if (err.name === "AbortError") return;
                 console.error("Save file picker failed:", err);
-                alert("Unable to open save file dialog.");
                 return;
             }
         }
@@ -69,15 +80,12 @@ export async function handleSaveMap() {
             });
             saveAutosave();
             loadMapList();
-            alert(`Map saved to ${state.currentMapName}`);
         } catch (err) {
             console.error("Saving map failed:", err);
-            alert("Unable to save the map file.");
         }
     } else {
         // Fallback for browsers without File System Access API
         downloadMapFile(mapData);
-        alert("Your browser does not support direct overwrite save. The map has been downloaded instead.");
     }
 }
 
@@ -138,6 +146,7 @@ export function loadMap(name) {
     if (savedMaps[name]) {
         state.nodes = savedMaps[name].nodes;
         state.relationships = savedMaps[name].relationships || [];
+        ensureRootColor();
         state.currentMapName = savedMaps[name].name || name;
         
         // Safeguard selected node
@@ -226,9 +235,6 @@ export function loadMapList() {
  * Create new mindmap
  */
 export function handleNewMap() {
-    if (!confirm("Start a new mindmap? Unsaved changes to the current map will be lost.")) {
-        return;
-    }
     resetState();
     state.saveFileHandle = null;
     
@@ -288,7 +294,7 @@ export function handleImportFile(e) {
                 throw new Error("Invalid mindmap JSON format: root node is missing.");
             }
         } catch (err) {
-            alert("Error importing JSON mindmap file: " + err.message);
+            console.error("Error importing JSON mindmap file:", err);
         }
     };
     reader.readAsText(file);
@@ -297,7 +303,7 @@ export function handleImportFile(e) {
 }
 
 /**
- * Import MindMeister .mm file
+ * Import Freemind .mm file
  */
 export function handleImportMindMeisterFile(e) {
     const file = e.target.files[0];
@@ -309,7 +315,7 @@ export function handleImportMindMeisterFile(e) {
             const imported = parseFreemindXml(evt.target.result);
             importMapData(imported, file.name);
         } catch (err) {
-            alert("Error importing MindMeister (.mm/.xml) file: " + err.message);
+            console.error("Error importing Freemind (.mm/.xml) file:", err);
         }
     };
     reader.readAsText(file);
@@ -323,6 +329,7 @@ export function handleImportMindMeisterFile(e) {
 export function importMapData(imported, filename, skipLayout = false) {
     state.nodes = imported.nodes;
     state.relationships = imported.relationships || [];
+    ensureRootColor();
     
     // Only auto-layout if this is an external format import (not a previously saved MindFlow file)
     if (!skipLayout) {
@@ -344,8 +351,6 @@ export function importMapData(imported, filename, skipLayout = false) {
     setTimeout(() => {
         renderConnectors();
     }, 100);
-
-    alert("Mindmap successfully imported from " + filename + "!");
 }
 
 /**

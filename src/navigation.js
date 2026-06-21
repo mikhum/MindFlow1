@@ -7,6 +7,7 @@ import { state } from './state.js';
 import { getAbsoluteCoords } from './utils.js';
 import { getDomElements } from './dom.js';
 import { updateCanvasTransform } from './viewport.js';
+import { isNodeHiddenByCollapsedAncestor } from './nodes.js';
 
 /**
  * Scroll viewport to show a node
@@ -38,12 +39,10 @@ export function centerOnNode(nodeId) {
     if (!workspace || !canvas) return;
 
     const coords = getAbsoluteCoords(nodeId);
-    const viewportWidth = workspace.clientWidth;
-    const viewportHeight = workspace.clientHeight;
 
     state.viewportTransform.scale = 1;
-    state.viewportTransform.x = viewportWidth / 2 - coords.x;
-    state.viewportTransform.y = viewportHeight / 2 - coords.y;
+    state.viewportTransform.x = -coords.x;
+    state.viewportTransform.y = -coords.y;
 
     updateCanvasTransform();
 }
@@ -53,9 +52,10 @@ export function centerOnNode(nodeId) {
  */
 export function navigateGeometrically(direction) {
     if (!state.selectedNodeId) return;
+    if (isNodeHiddenByCollapsedAncestor(state.selectedNodeId)) return;
 
     const currentCoords = getAbsoluteCoords(state.selectedNodeId);
-    const allNodeIds = Object.keys(state.nodes);
+    const allNodeIds = Object.keys(state.nodes).filter((nodeId) => !isNodeHiddenByCollapsedAncestor(nodeId));
 
     if (allNodeIds.length <= 1) return;
 

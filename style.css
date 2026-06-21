@@ -496,6 +496,36 @@ body, html {
     box-shadow: var(--shadow-glow), var(--shadow-lg);
 }
 
+.node.editing {
+    border-style: dashed;
+}
+
+.node .editing-text {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+}
+
+.node-collapse-toggle {
+    margin-left: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: var(--text-muted);
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    vertical-align: middle;
+}
+
+.node-collapse-toggle:hover {
+    color: var(--text-main);
+    border-color: var(--accent-indigo);
+}
+
 .node.dragging {
     cursor: grabbing;
     opacity: 0.85;

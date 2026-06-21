@@ -75,9 +75,8 @@ try {
   const parentConnectorCount = await page.locator('svg path.connector-line').count();
   assert.equal(parentConnectorCount, 1, 'expected a parent-child connector to be created');
 
-  const editor = page.locator('.node-text-edit');
-  await editor.fill('Smoke Topic');
-  await editor.press('Enter');
+  await page.keyboard.type('Smoke Topic');
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(100);
   const nodeTexts = await page.locator('.node').allTextContents();
   assert(nodeTexts.some((text) => text.includes('Smoke Topic')), 'expected edited node text to persist');
