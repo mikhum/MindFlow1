@@ -8,7 +8,7 @@ import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, isDescendantOf } from './utils.js';
 import { render, renderConnectors, updateNodeStyleControls, showHelp, handleNodePointerDown } from './rendering.js';
 import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, setNodeTextAlign, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
-import { handleSaveMap, handleNewMap, handleImportFile, handleImportMindMeisterFile, loadMapList, saveAutosave } from './fileIO.js';
+import { handleSaveMap, handleSaveAsMap, handleNewMap, handleOpenMindflow, handleImportFile, handleImportMindMeisterFile, loadMapList, saveAutosave } from './fileIO.js';
 import { handleExportDoc, handleExportPdf } from './fileIO.js';
 import { zoom, resetViewport, handleWheel } from './viewport.js';
 import { navigateGeometrically, centerOnNode, scrollToNode } from './navigation.js';
@@ -44,6 +44,7 @@ export function setupEventListeners() {
         ctrlHelp,
         btnNewMap,
         btnSaveMap,
+        btnSaveAsMap,
         btnArrangeMap,
         btnExportDoc,
         btnExportPdf,
@@ -121,6 +122,9 @@ export function setupEventListeners() {
         render();
     });
     btnSaveMap.addEventListener("click", handleSaveMap);
+    if (btnSaveAsMap) {
+        btnSaveAsMap.addEventListener("click", handleSaveAsMap);
+    }
     if (btnArrangeMap) {
         btnArrangeMap.addEventListener("click", () => {
             layoutImportedMap();
@@ -137,7 +141,9 @@ export function setupEventListeners() {
         btnExportPdf.addEventListener("click", handleExportPdf);
     }
     if (btnOpenMindflow) {
-        btnOpenMindflow.addEventListener("click", () => fileImportInput.click());
+        btnOpenMindflow.addEventListener("click", () => {
+            handleOpenMindflow();
+        });
     }
     if (btnImportMindMeister) {
         btnImportMindMeister.addEventListener("click", () => fileImportMindMeisterInput.click());

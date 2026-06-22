@@ -14,6 +14,10 @@ import { getEdgePoint } from './utils.js';
 const DEFAULT_ROOT_COLOR = "#0ea5e9";
 let pdfLibrariesPromise = null;
 
+function clearCurrentFileBinding() {
+    state.saveFileHandle = null;
+}
+
 function loadScript(src) {
     return new Promise((resolve, reject) => {
         const existing = document.querySelector(`script[data-mindflow-lib="${src}"]`);
@@ -81,60 +85,106 @@ export function saveAutosave() {
     }));
 }
 
-/**
- * Handle saving map to file
- */
-export async function handleSaveMap() {
-    // Use explicit root text if currentMapName is not set (i.e., this is a new unsaved map)
+function buildMapData() {
     const suggestedName = state.currentMapName || (state.nodes.root && state.nodes.root.text) || "My Mindmap";
-    
-    const mapData = {
+    return {
         format: "mindflow",
         version: "1.0",
         name: suggestedName,
         nodes: state.nodes,
         relationships: state.relationships
     };
+}
 
-    saveMapToBrowserStorage(suggestedName, mapData);
+async function ensureFileHandlePermission(handle) {
+    if (!handle?.queryPermission || !handle?.requestPermission) {
+        return !!handle;
+    }
+
+    const options = { mode: "readwrite" };
+    if (await handle.queryPermission(options) === "granted") {
+        return true;
+    }
+
+    return (await handle.requestPermission(options)) === "granted";
+}
+
+/**
+ * Handle saving map to file
+ */
+export async function handleSaveMap() {
+    const mapData = buildMapData();
+    saveMapToBrowserStorage(mapData.name, mapData);
     saveAutosave();
     loadMapList();
 
-    if (window.showSaveFilePicker) {
-        if (!state.saveFileHandle) {
-            try {
-                state.saveFileHandle = await window.showSaveFilePicker({
-                    types: [
-                        {
-                            description: "MindFlow map file",
-                            accept: { "application/json": [".mindflow", ".json"] }
-                        }
-                    ],
-                    suggestedName: getSuggestedMapFilename(mapData.name)
-                });
-            } catch (err) {
-                if (err.name === "AbortError") return;
-                console.error("Save file picker failed:", err);
-                return;
-            }
+    if (!state.saveFileHandle) {
+        alert("No opened file to overwrite. Use Save As.");
+        return;
+    }
+
+    try {
+        const hasPermission = await ensureFileHandlePermission(state.saveFileHandle);
+        if (!hasPermission) {
+            alert("Could not get permission to write the opened file. Use Save As.");
+            return;
         }
 
-        try {
-            await writeMapToHandle(state.saveFileHandle, mapData);
-            state.currentMapName = state.saveFileHandle.name || mapData.name;
-            saveMapToBrowserStorage(state.currentMapName, {
-                ...mapData,
-                name: state.currentMapName
-            });
-            saveAutosave();
-            loadMapList();
-        } catch (err) {
-            console.error("Saving map failed:", err);
-        }
-    } else {
-        // Fallback for browsers without File System Access API
-        downloadMapFile(mapData);
+        const writable = await state.saveFileHandle.createWritable();
+        await writable.write(JSON.stringify(mapData, null, 2));
+        await writable.close();
+
+        state.currentMapName = state.saveFileHandle.name || mapData.name;
+        saveMapToBrowserStorage(state.currentMapName, {
+            ...mapData,
+            name: state.currentMapName
+        });
+        saveAutosave();
+        loadMapList();
+    } catch (err) {
+        console.error("Saving map failed:", err);
+        alert("Could not save to the opened file. Use Save As.");
     }
+}
+
+export function handleSaveAsMap() {
+    const mapData = buildMapData();
+
+    saveMapToBrowserStorage(mapData.name, mapData);
+    saveAutosave();
+    loadMapList();
+    downloadMapFile(mapData);
+}
+
+function loadMindflowFromText(fileText, filename) {
+    const normalizedText = String(fileText)
+        .replace(/^\uFEFF/, "")
+        .trim();
+
+    if (!normalizedText) {
+        throw new Error("The selected file is empty.");
+    }
+
+    const data = JSON.parse(normalizedText);
+    if (!data || !data.nodes || !data.nodes.root) {
+        throw new Error("Invalid MindFlow file format: root node is missing.");
+    }
+
+    const isMindFlowFile = data.format === "mindflow";
+    importMapData({
+        nodes: data.nodes,
+        relationships: data.relationships || [],
+        name: data.name || filename.replace(/\.[^/.]+$/, "")
+    }, filename, isMindFlowFile);
+}
+
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (evt) => resolve(evt.target.result);
+        reader.onerror = () => reject(reader.error || new Error("Failed to read file."));
+        reader.readAsText(file);
+    });
 }
 
 function saveMapToBrowserStorage(name, mapData) {
@@ -164,26 +214,19 @@ export function getSuggestedMapFilename(name) {
 }
 
 /**
- * Write map data to file handle
- */
-async function writeMapToHandle(handle, data) {
-    const writable = await handle.createWritable();
-    await writable.write(JSON.stringify(data, null, 2));
-    await writable.close();
-}
-
-/**
  * Download map as JSON file
  */
 export function downloadMapFile(data) {
     const fileName = getSuggestedMapFilename(data.name);
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+    const blobUrl = URL.createObjectURL(blob);
     const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("href", blobUrl);
     downloadAnchor.setAttribute("download", fileName);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
 }
 
 /**
@@ -192,6 +235,7 @@ export function downloadMapFile(data) {
 export function loadMap(name) {
     const savedMaps = JSON.parse(localStorage.getItem("mindflow_saved_maps") || "{}");
     if (savedMaps[name]) {
+        clearCurrentFileBinding();
         state.nodes = savedMaps[name].nodes;
         state.relationships = savedMaps[name].relationships || [];
         ensureRootColor();
@@ -284,7 +328,7 @@ export function loadMapList() {
  */
 export function handleNewMap() {
     resetState();
-    state.saveFileHandle = null;
+    clearCurrentFileBinding();
     
     state.viewportTransform = { x: 0, y: 0, scale: 1 };
 
@@ -299,30 +343,51 @@ export function handleNewMap() {
 /**
  * Import map from local MindFlow file
  */
+export async function handleOpenMindflow() {
+    if (!window.showOpenFilePicker) {
+        const { fileImportInput } = getDomElements();
+        if (fileImportInput) fileImportInput.click();
+        return;
+    }
+
+    try {
+        const [fileHandle] = await window.showOpenFilePicker({
+            multiple: false,
+            types: [
+                {
+                    description: "MindFlow map file",
+                    accept: { "application/json": [".mindflow", ".json"] }
+                }
+            ]
+        });
+        if (!fileHandle) return;
+
+        const file = await fileHandle.getFile();
+        const fileText = await readFileAsText(file);
+        loadMindflowFromText(fileText, file.name);
+        state.saveFileHandle = fileHandle;
+        state.currentMapName = fileHandle.name || state.currentMapName;
+        saveAutosave();
+    } catch (err) {
+        if (err.name === "AbortError") return;
+        console.error("Error opening MindFlow file:", err);
+        alert(`Could not open the selected MindFlow file: ${err.message}`);
+    }
+}
+
 export function handleImportFile(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-        try {
-            const data = JSON.parse(evt.target.result);
-            if (data && data.nodes && data.nodes.root) {
-                // If this is a MindFlow format file, preserve original layout
-                const isMindFlowFile = data.format === "mindflow";
-                importMapData({
-                    nodes: data.nodes,
-                    relationships: data.relationships || [],
-                    name: data.name || file.name.replace(/\.[^/.]+$/, "")
-                }, file.name, isMindFlowFile);
-            } else {
-                throw new Error("Invalid MindFlow file format: root node is missing.");
-            }
-        } catch (err) {
+    readFileAsText(file)
+        .then((fileText) => {
+            loadMindflowFromText(fileText, file.name);
+            clearCurrentFileBinding();
+        })
+        .catch((err) => {
             console.error("Error importing MindFlow file:", err);
-        }
-    };
-    reader.readAsText(file);
+            alert(`Could not open the selected MindFlow file: ${err.message}`);
+        });
     const { fileImportInput } = getDomElements();
     if (fileImportInput) fileImportInput.value = "";
 }

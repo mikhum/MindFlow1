@@ -33,6 +33,7 @@ export function initDomElements() {
         btnShowSidebar: document.getElementById("show-sidebar"),
         btnNewMap: document.getElementById("btn-new-map"),
         btnSaveMap: document.getElementById("btn-save-map"),
+        btnSaveAsMap: document.getElementById("btn-save-as-map"),
         btnArrangeMap: document.getElementById("btn-arrange-map"),
         btnExportDoc: document.getElementById("btn-export-doc"),
         btnExportPdf: document.getElementById("btn-export-pdf"),
