@@ -445,9 +445,7 @@ async function exportMindmapPdf() {
     stage.style.top = "0";
     stage.style.width = `${viewWidth}px`;
     stage.style.height = `${viewHeight}px`;
-    stage.style.backgroundColor = "#f8fafc";
-    stage.style.backgroundImage = "radial-gradient(#cbd5e1 1.3px, transparent 1.3px)";
-    stage.style.backgroundSize = "24px 24px";
+    stage.style.backgroundColor = "transparent";
     stage.style.overflow = "hidden";
 
     const lineCanvas = document.createElement("canvas");

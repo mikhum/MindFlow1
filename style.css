@@ -474,14 +474,14 @@ body, html {
 .connector-line {
     fill: none;
     stroke: #475569;
-    stroke-width: 3px;
+    stroke-width: 3.6px;
     stroke-linecap: round;
     transition: stroke var(--transition-fast), stroke-width var(--transition-fast);
 }
 
 .connector-line.preview {
     stroke: var(--accent-emerald);
-    stroke-width: 3px;
+    stroke-width: 3.6px;
     stroke-dasharray: 6 4;
     animation: dash 20s linear infinite;
 }
@@ -537,7 +537,7 @@ body, html {
     max-width: none;
     width: max-content;
     padding: 0 4px;
-    font-size: 0.92rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #64748b;
     transform: translate(-50%, -42%);
@@ -643,7 +643,7 @@ body, html {
 .node-depth-0 { /* Root */
     background: linear-gradient(135deg, var(--accent-indigo) 0%, #7c3aed 100%);
     color: white;
-    font-size: 1.15rem;
+    font-size: 1.38rem;
     font-weight: 600;
     border-radius: 24px;
     padding: 14px 28px;
@@ -657,14 +657,14 @@ body, html {
 
 .node-depth-1 { /* Main Branches */
     border: 2px solid var(--accent-indigo);
-    font-size: 1rem;
+    font-size: 1.2rem;
     border-radius: 16px;
     padding: 12px 20px;
 }
 
 .node-depth-2 { /* Sub-branches */
     border: 1.5px solid var(--border-color);
-    font-size: 0.9rem;
+    font-size: 1.08rem;
     color: #334155;
 }
 
@@ -866,7 +866,7 @@ body, html {
 .relationship-line {
     fill: none;
     stroke: var(--accent-rose);
-    stroke-width: 2.5px;
+    stroke-width: 3px;
     stroke-dasharray: 6 4;
     cursor: pointer;
     transition: stroke var(--transition-fast), stroke-width var(--transition-fast);
@@ -874,12 +874,12 @@ body, html {
 
 .relationship-line:hover, .relationship-line.hovered {
     stroke: #e11d48;
-    stroke-width: 3.5px;
+    stroke-width: 4.2px;
 }
 
 .relationship-line.selected {
     stroke: #be123c;
-    stroke-width: 4px;
+    stroke-width: 4.8px;
     stroke-dasharray: none;
 }
 
@@ -895,7 +895,7 @@ body, html {
 /* Temporary preview relationship line */
 .relationship-line.preview {
     stroke: var(--accent-rose);
-    stroke-width: 2.5px;
+    stroke-width: 3px;
     stroke-dasharray: 4 4;
     opacity: 0.7;
     pointer-events: none;
