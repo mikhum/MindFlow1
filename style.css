@@ -102,6 +102,7 @@ body, html {
 
 .menu-root {
     display: flex;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 6px;
     height: 100%;
@@ -111,6 +112,7 @@ body, html {
 
 .menu-item {
     position: relative;
+    flex: 0 0 auto;
     height: 100%;
     display: flex;
     align-items: center;
@@ -158,7 +160,7 @@ body, html {
     gap: 4px;
 }
 
-.menu-item:hover .menu-dropdown {
+.menu-item:focus-within .menu-dropdown {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -400,6 +402,44 @@ body, html {
 .btn-outline:hover {
     background-color: var(--bg-app);
     border-color: var(--text-light);
+}
+
+/* Keep classic dropdown look regardless of generic button variants below. */
+.menu-dropdown .btn.btn-primary,
+.menu-dropdown .btn.btn-secondary,
+.menu-dropdown .btn.btn-outline,
+.menu-dropdown .btn.btn-primary:hover,
+.menu-dropdown .btn.btn-secondary:hover,
+.menu-dropdown .btn.btn-outline:hover {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.menu-dropdown .btn.btn-primary,
+.menu-dropdown .btn.btn-secondary,
+.menu-dropdown .btn.btn-outline {
+    background: transparent;
+    color: #111111;
+}
+
+.menu-dropdown .btn.btn-primary i,
+.menu-dropdown .btn.btn-secondary i,
+.menu-dropdown .btn.btn-outline i {
+    color: #3b3b3b;
+}
+
+.menu-dropdown .btn.btn-primary:hover,
+.menu-dropdown .btn.btn-secondary:hover,
+.menu-dropdown .btn.btn-outline:hover {
+    background: #1f6feb;
+    color: #ffffff;
+}
+
+.menu-dropdown .btn.btn-primary:hover i,
+.menu-dropdown .btn.btn-secondary:hover i,
+.menu-dropdown .btn.btn-outline:hover i {
+    color: #ffffff;
 }
 
 /* Saved Maps List */
