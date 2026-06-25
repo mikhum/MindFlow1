@@ -90,12 +90,16 @@ try {
 
   await page.locator('svg path.relationship-line-overlay').first().dispatchEvent('pointerdown');
   await page.waitForTimeout(100);
+  await page.getByRole('button', { name: 'Redigera' }).click();
+  await page.waitForTimeout(100);
   await page.locator('#node-color-picker').fill('#10b981');
   await page.locator('#node-comment').fill('Relationship note');
   await page.waitForTimeout(100);
   const liveRelationshipColor = await page.locator('svg path.relationship-line[marker-end="url(#relationship-arrow)"]').first().getAttribute('stroke');
   assert.equal(liveRelationshipColor, '#10b981', 'expected relationship color to update in the UI');
 
+  await page.getByRole('button', { name: 'Arkiv' }).click();
+  await page.waitForTimeout(100);
   await page.locator('#btn-save-map').click({ force: true });
   await page.waitForTimeout(100);
   const savedMaps = await page.evaluate(() => JSON.parse(localStorage.getItem('mindflow_saved_maps') || '{}'));

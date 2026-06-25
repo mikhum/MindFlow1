@@ -18,6 +18,36 @@ function clearCurrentFileBinding() {
     state.saveFileHandle = null;
 }
 
+function isFileSystemAccessRestrictedError(err) {
+    if (!err) return false;
+    const name = String(err.name || "");
+    const message = String(err.message || "").toLowerCase();
+    return (
+        name === "NotAllowedError" ||
+        name === "SecurityError" ||
+        message.includes("not allowed by user agent") ||
+        message.includes("platform in the current context")
+    );
+}
+
+function openViaFileInputFallback() {
+    const { fileImportInput } = getDomElements();
+    if (fileImportInput) {
+        fileImportInput.click();
+    } else {
+        alert("Could not open file picker in this browser context.");
+    }
+}
+
+function shouldUseFileInputForOpen() {
+    // File System Access API is commonly restricted in file:// contexts.
+    if (window.location?.protocol === "file:") {
+        return true;
+    }
+
+    return !window.showOpenFilePicker;
+}
+
 function loadScript(src) {
     return new Promise((resolve, reject) => {
         const existing = document.querySelector(`script[data-mindflow-lib="${src}"]`);
@@ -119,14 +149,15 @@ export async function handleSaveMap() {
     loadMapList();
 
     if (!state.saveFileHandle) {
-        alert("No opened file to overwrite. Use Save As.");
+        // No bound file handle: fall back to normal file download behavior.
+        downloadMapFile(mapData);
         return;
     }
 
     try {
         const hasPermission = await ensureFileHandlePermission(state.saveFileHandle);
         if (!hasPermission) {
-            alert("Could not get permission to write the opened file. Use Save As.");
+            downloadMapFile(mapData);
             return;
         }
 
@@ -143,6 +174,12 @@ export async function handleSaveMap() {
         loadMapList();
     } catch (err) {
         console.error("Saving map failed:", err);
+        if (isFileSystemAccessRestrictedError(err)) {
+            clearCurrentFileBinding();
+            downloadMapFile(mapData);
+            return;
+        }
+
         alert("Could not save to the opened file. Use Save As.");
     }
 }
@@ -344,9 +381,8 @@ export function handleNewMap() {
  * Import map from local MindFlow file
  */
 export async function handleOpenMindflow() {
-    if (!window.showOpenFilePicker) {
-        const { fileImportInput } = getDomElements();
-        if (fileImportInput) fileImportInput.click();
+    if (shouldUseFileInputForOpen()) {
+        openViaFileInputFallback();
         return;
     }
 
@@ -370,6 +406,12 @@ export async function handleOpenMindflow() {
         saveAutosave();
     } catch (err) {
         if (err.name === "AbortError") return;
+        if (isFileSystemAccessRestrictedError(err)) {
+            console.warn("Open via File System Access API is not available in this context. Falling back to file input.", err);
+            openViaFileInputFallback();
+            return;
+        }
+
         console.error("Error opening MindFlow file:", err);
         alert(`Could not open the selected MindFlow file: ${err.message}`);
     }

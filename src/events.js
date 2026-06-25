@@ -26,6 +26,67 @@ import {
 } from './relationships.js';
 import { updateCanvasTransform } from './viewport.js';
 
+function setupClassicMenuInteractions() {
+    const menuBar = document.querySelector('.menu-bar');
+    const menuItems = Array.from(document.querySelectorAll('.menu-item'));
+
+    if (!menuBar || menuItems.length === 0) return;
+
+    const closeAllMenus = () => {
+        menuItems.forEach((item) => {
+            item.classList.remove('open');
+            const trigger = item.querySelector('.menu-trigger');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        });
+    };
+
+    const openMenu = (itemToOpen) => {
+        menuItems.forEach((item) => {
+            const isOpen = item === itemToOpen;
+            item.classList.toggle('open', isOpen);
+            const trigger = item.querySelector('.menu-trigger');
+            if (trigger) trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    };
+
+    menuItems.forEach((item) => {
+        const trigger = item.querySelector('.menu-trigger');
+        if (!trigger) return;
+
+        trigger.setAttribute('aria-haspopup', 'true');
+        trigger.setAttribute('aria-expanded', 'false');
+
+        trigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isOpen = item.classList.contains('open');
+            if (isOpen) {
+                closeAllMenus();
+            } else {
+                openMenu(item);
+            }
+        });
+
+        item.addEventListener('mouseenter', () => {
+            const hasOpenMenu = menuItems.some((entry) => entry.classList.contains('open'));
+            if (hasOpenMenu) {
+                openMenu(item);
+            }
+        });
+    });
+
+    document.addEventListener('pointerdown', (e) => {
+        if (!menuBar.contains(e.target)) {
+            closeAllMenus();
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAllMenus();
+        }
+    });
+}
+
 /**
  * Setup all event listeners
  */
@@ -42,6 +103,7 @@ export function setupEventListeners() {
         ctrlAddRelationship,
         ctrlDeleteNode,
         ctrlHelp,
+        menuOpenHelp,
         btnNewMap,
         btnSaveMap,
         btnSaveAsMap,
@@ -68,6 +130,8 @@ export function setupEventListeners() {
         sidebar
     } = getDomElements();
 
+    setupClassicMenuInteractions();
+
     // Canvas zooming (Wheel)
     workspace.addEventListener("wheel", handleWheel, { passive: false });
 
@@ -81,14 +145,16 @@ export function setupEventListeners() {
     window.addEventListener("pointerdown", handleGlobalPointerDown, true);
 
     // Sidebar Toggling
-    btnHideSidebar.addEventListener("click", () => {
-        sidebar.classList.add("hidden");
-        btnShowSidebar.style.display = "flex";
-    });
-    btnShowSidebar.addEventListener("click", () => {
-        sidebar.classList.remove("hidden");
-        btnShowSidebar.style.display = "none";
-    });
+    if (btnHideSidebar && btnShowSidebar && sidebar) {
+        btnHideSidebar.addEventListener("click", () => {
+            sidebar.classList.add("hidden");
+            btnShowSidebar.style.display = "flex";
+        });
+        btnShowSidebar.addEventListener("click", () => {
+            sidebar.classList.remove("hidden");
+            btnShowSidebar.style.display = "none";
+        });
+    }
 
     // Floating Control Buttons
     ctrlZoomIn.addEventListener("click", () => zoom(1.1));
@@ -110,7 +176,12 @@ export function setupEventListeners() {
             render();
         }
     });
-    ctrlHelp.addEventListener("click", () => showHelp(true));
+    if (ctrlHelp) {
+        ctrlHelp.addEventListener("click", () => showHelp(true));
+    }
+    if (menuOpenHelp) {
+        menuOpenHelp.addEventListener("click", () => showHelp(true));
+    }
 
     // Modals
     btnCloseHelpModal.addEventListener("click", () => showHelp(false));
@@ -292,7 +363,7 @@ function handleWorkspacePointerDown(e) {
     if (
         e.target.closest(".node") ||
         e.target.closest(".floating-controls") ||
-        sidebar.contains(e.target) ||
+        (sidebar && sidebar.contains(e.target)) ||
         e.target.closest(".relationship-delete-btn")
     ) {
         return;

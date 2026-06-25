@@ -14,140 +14,129 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="fa-solid fa-diagram-project brand-icon"></i>
-                    <h1>MindFlow</h1>
-                </div>
-                <button class="toggle-sidebar-btn" id="hide-sidebar" title="Hide Sidebar">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
+        <header class="menu-bar" id="sidebar">
+            <div class="menu-brand">
+                <i class="fa-solid fa-diagram-project brand-icon"></i>
+                <strong>MindFlow</strong>
             </div>
 
-            <div class="sidebar-content">
-                <!-- File Actions Section -->
-                <div class="sidebar-section">
-                    <h3>Map Manager</h3>
-                    <div class="button-group-vertical">
+            <nav class="menu-root" aria-label="Main menu">
+                <div class="menu-item">
+                    <button class="menu-trigger" type="button">Arkiv</button>
+                    <div class="menu-dropdown" role="menu">
                         <button class="btn btn-primary" id="btn-new-map">
-                            <i class="fa-solid fa-plus"></i> New Mindmap
+                            <i class="fa-solid fa-plus"></i> Ny mindmap
                         </button>
                         <button class="btn btn-secondary" id="btn-save-map">
-                            <i class="fa-solid fa-floppy-disk"></i> Save
+                            <i class="fa-solid fa-floppy-disk"></i> Spara
                         </button>
                         <button class="btn btn-outline" id="btn-save-as-map">
-                            <i class="fa-regular fa-floppy-disk"></i> Save As
+                            <i class="fa-regular fa-floppy-disk"></i> Spara som
                         </button>
                         <button class="btn btn-outline" id="btn-arrange-map" title="Arrange and center the current map">
                             <i class="fa-solid fa-sitemap"></i> Arrange Map
                         </button>
-                    </div>
-                </div>
-
-                <!-- Saved Maps Section -->
-                <div class="sidebar-section">
-                    <h3>Saved Maps</h3>
-                    <div class="saved-maps-list" id="saved-maps-list">
-                        <div class="empty-state">No saved maps found in browser storage.</div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <h3>Topic Search</h3>
-                    <input type="search" id="topic-search-input" class="topic-search-input" placeholder="Search text in topics..." aria-label="Search topics">
-                    <div class="button-group-row" style="margin-top: 8px;">
-                        <button class="btn btn-outline search-nav-btn" id="topic-search-prev" type="button" title="Previous match">
-                            <i class="fa-solid fa-chevron-up"></i> Prev
-                        </button>
-                        <button class="btn btn-outline search-nav-btn" id="topic-search-next" type="button" title="Next match">
-                            <i class="fa-solid fa-chevron-down"></i> Next
-                        </button>
-                    </div>
-                    <p class="field-hint" id="topic-search-status">No active search.</p>
-                </div>
-
-                <!-- Local File Import/Export -->
-                <div class="sidebar-section">
-                    <h3>Local Backup</h3>
-                    <div class="button-group-row">
-                        <button class="btn btn-outline" id="btn-export-doc" title="Export as Word document">
-                            <i class="fa-solid fa-file-word"></i> Export Word
-                        </button>
-                        <button class="btn btn-outline" id="btn-export-pdf" title="Export as PDF document">
-                            <i class="fa-solid fa-file-pdf"></i> Export PDF
-                        </button>
-                    </div>
-                    <div class="button-group-row">
-                        <label class="form-label" for="pdf-orientation" style="margin: 0; min-width: 88px; align-self: center;">PDF format</label>
-                        <select id="pdf-orientation" class="btn btn-outline" title="Choose PDF orientation" style="flex: 1; text-align: left;">
-                            <option value="landscape" selected>Landscape (recommended)</option>
-                            <option value="portrait">Portrait</option>
-                        </select>
-                    </div>
-                    <div class="button-group-row">
+                        <div class="menu-separator"></div>
                         <button class="btn btn-outline" id="btn-open-mindflow" title="Open a saved MindFlow file (.mindflow)">
                             <i class="fa-solid fa-folder-open"></i> Open MindFlow
                         </button>
-                    </div>
-                    <div class="button-group-row">
                         <button class="btn btn-outline" id="btn-import-mindmeister" title="Import Freemind (.mm)">
                             <i class="fa-solid fa-file-import"></i> Import Freemind
                         </button>
+                        <div class="button-group-row">
+                            <button class="btn btn-outline" id="btn-export-doc" title="Export as Word document">
+                                <i class="fa-solid fa-file-word"></i> Export Word
+                            </button>
+                            <button class="btn btn-outline" id="btn-export-pdf" title="Export as PDF document">
+                                <i class="fa-solid fa-file-pdf"></i> Export PDF
+                            </button>
+                        </div>
+                        <div class="button-group-row">
+                            <label class="form-label" for="pdf-orientation" style="margin: 0; min-width: 88px; align-self: center;">PDF format</label>
+                            <select id="pdf-orientation" class="btn btn-outline" title="Choose PDF orientation" style="flex: 1; text-align: left;">
+                                <option value="landscape" selected>Landscape (recommended)</option>
+                                <option value="portrait">Portrait</option>
+                            </select>
+                        </div>
                     </div>
-                    <input type="file" id="file-import-input" accept=".mindflow" style="display: none;">
-                    <input type="file" id="file-import-mindmeister-input" accept=".mm,.xml" style="display: none;">
                 </div>
 
-                <div class="sidebar-section">
-                    <h3>Selected Object Styling</h3>
-                    <label class="form-label" for="node-color-picker">Selected object color</label>
-                    <div class="color-picker-group">
-                        <input type="color" id="node-color-picker" value="#7c3aed" title="Pick a color for the selected node">
-                        <button type="button" class="btn btn-outline node-color-clear-btn" id="node-color-clear">Clear</button>
+                <div class="menu-item">
+                    <button class="menu-trigger" type="button">Redigera</button>
+                    <div class="menu-dropdown" role="menu">
+                        <label class="form-label" for="node-color-picker">Markerat objekt: färg</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="node-color-picker" value="#7c3aed" title="Pick a color for the selected node">
+                            <button type="button" class="btn btn-outline node-color-clear-btn" id="node-color-clear">Clear</button>
+                        </div>
+                        <div class="color-palette" id="node-color-palette">
+                            <button type="button" class="color-swatch" data-color="#7c3aed" style="background:#7c3aed" title="Purple"></button>
+                            <button type="button" class="color-swatch" data-color="#0ea5e9" style="background:#0ea5e9" title="Sky Blue"></button>
+                            <button type="button" class="color-swatch" data-color="#10b981" style="background:#10b981" title="Emerald"></button>
+                            <button type="button" class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
+                            <button type="button" class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" title="Rose"></button>
+                            <button type="button" class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" title="Violet"></button>
+                        </div>
+                        <label class="form-label" style="margin-top: 10px;">Text alignment</label>
+                        <div class="text-align-controls" id="topic-align-controls">
+                            <button type="button" class="btn btn-outline text-align-btn" id="topic-align-center" title="Center align topic text">
+                                <i class="fa-solid fa-align-center"></i> Center
+                            </button>
+                            <button type="button" class="btn btn-outline text-align-btn" id="topic-align-left" title="Left align topic text">
+                                <i class="fa-solid fa-align-left"></i> Left
+                            </button>
+                        </div>
+                        <label class="form-label" for="node-comment" style="margin-top: 10px;">Kommentar</label>
+                        <textarea id="node-comment" placeholder="Add a comment or notes for this node..." class="node-comment-textarea"></textarea>
                     </div>
-                    <div class="color-palette" id="node-color-palette">
-                        <button type="button" class="color-swatch" data-color="#7c3aed" style="background:#7c3aed" title="Purple"></button>
-                        <button type="button" class="color-swatch" data-color="#0ea5e9" style="background:#0ea5e9" title="Sky Blue"></button>
-                        <button type="button" class="color-swatch" data-color="#10b981" style="background:#10b981" title="Emerald"></button>
-                        <button type="button" class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
-                        <button type="button" class="color-swatch" data-color="#f43f5e" style="background:#f43f5e" title="Rose"></button>
-                        <button type="button" class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6" title="Violet"></button>
-                    </div>
-                    <p class="field-hint">Choose a color to tint the selected node. Clear to restore default styling.</p>
+                </div>
 
-                    <label class="form-label" style="margin-top: 10px;">Text alignment</label>
-                    <div class="text-align-controls" id="topic-align-controls">
-                        <button type="button" class="btn btn-outline text-align-btn" id="topic-align-center" title="Center align topic text">
-                            <i class="fa-solid fa-align-center"></i> Center
+                <div class="menu-item">
+                    <button class="menu-trigger" type="button">Visa</button>
+                    <div class="menu-dropdown" role="menu">
+                        <label class="form-label" for="topic-search-input">Sök topic</label>
+                        <input type="search" id="topic-search-input" class="topic-search-input" placeholder="Search text in topics..." aria-label="Search topics">
+                        <div class="button-group-row" style="margin-top: 8px;">
+                            <button class="btn btn-outline search-nav-btn" id="topic-search-prev" type="button" title="Previous match">
+                                <i class="fa-solid fa-chevron-up"></i> Prev
+                            </button>
+                            <button class="btn btn-outline search-nav-btn" id="topic-search-next" type="button" title="Next match">
+                                <i class="fa-solid fa-chevron-down"></i> Next
+                            </button>
+                        </div>
+                        <p class="field-hint" id="topic-search-status">No active search.</p>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    <button class="menu-trigger" type="button">Mappar</button>
+                    <div class="menu-dropdown" role="menu">
+                        <div class="saved-maps-list" id="saved-maps-list">
+                            <div class="empty-state">No saved maps found in browser storage.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    <button class="menu-trigger" type="button">Hjalp</button>
+                    <div class="menu-dropdown" role="menu">
+                        <button class="btn btn-outline" id="menu-open-help">
+                            <i class="fa-solid fa-keyboard"></i> Visa kortkommandon
                         </button>
-                        <button type="button" class="btn btn-outline text-align-btn" id="topic-align-left" title="Left align topic text">
-                            <i class="fa-solid fa-align-left"></i> Left
-                        </button>
+                        <p class="field-hint">Tryck H for keyboard help.</p>
                     </div>
                 </div>
+            </nav>
 
-                <div class="sidebar-section">
-                    <h3>Node Comment</h3>
-                    <textarea id="node-comment" placeholder="Add a comment or notes for this node..." class="node-comment-textarea"></textarea>
-                    <p class="field-hint">Comments will be included in Word exports.</p>
-                </div>
-            </div>
-
-            <!-- Sidebar Footer -->
-            <div class="sidebar-footer">
-                <div class="theme-info">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span>Press H for keyboard help</span>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Toggle Sidebar Button (shown when sidebar is hidden) -->
-        <button class="show-sidebar-btn" id="show-sidebar" title="Show Sidebar" style="display: none;">
-            <i class="fa-solid fa-bars"></i>
-        </button>
+            <input type="file" id="file-import-input" accept=".mindflow" style="display: none;">
+            <input type="file" id="file-import-mindmeister-input" accept=".mm,.xml" style="display: none;">
+            <button class="toggle-sidebar-btn" id="hide-sidebar" title="Toggle Menu" style="display:none;">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <button class="show-sidebar-btn" id="show-sidebar" title="Toggle Menu" style="display:none;">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </header>
 
         <!-- Main Workspace -->
         <main class="workspace-container" id="workspace">

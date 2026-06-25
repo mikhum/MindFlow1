@@ -27,6 +27,7 @@ export function initDomElements() {
         ctrlAddRelationship: document.getElementById("ctrl-add-relationship"),
         ctrlDeleteNode: document.getElementById("ctrl-delete-node"),
         ctrlHelp: document.getElementById("ctrl-help"),
+        menuOpenHelp: document.getElementById("menu-open-help"),
 
         // Sidebar buttons
         btnHideSidebar: document.getElementById("hide-sidebar"),
