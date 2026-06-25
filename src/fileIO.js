@@ -10,9 +10,22 @@ import { layoutImportedMap, parseFreemindXml } from './layout.js';
 import { saveHistory } from './history.js';
 import { getDomElements } from './dom.js';
 import { getEdgePoint } from './utils.js';
+import {
+    getGoogleClientId,
+    setGoogleClientId,
+    isGoogleDriveConfigured,
+    signInToGoogleDrive,
+    signOutFromGoogleDrive,
+    getGoogleAuthState,
+    listJsonFilesFromGoogleDrive,
+    getJsonFromGoogleDrive,
+    deleteJsonFromGoogleDrive,
+    saveJsonToGoogleDrive
+} from './googleDrive.js';
 
 const DEFAULT_ROOT_COLOR = "#0ea5e9";
 let pdfLibrariesPromise = null;
+let googleMapsCache = [];
 
 function clearCurrentFileBinding() {
     state.saveFileHandle = null;
@@ -235,6 +248,212 @@ function saveMapToBrowserStorage(name, mapData) {
     localStorage.setItem("mindflow_saved_maps", JSON.stringify(savedMaps));
 }
 
+function normalizeCloudMapName(fileName) {
+    return String(fileName || "")
+        .replace(/\.mindflow$/i, "")
+        .replace(/\.json$/i, "")
+        .trim() || "Cloud map";
+}
+
+function updateGoogleAuthUi() {
+    const { googleAuthStatus, googleClientIdInput } = getDomElements();
+    if (!googleAuthStatus) return;
+
+    const currentClientId = getGoogleClientId();
+    if (googleClientIdInput && googleClientIdInput.value !== currentClientId) {
+        googleClientIdInput.value = currentClientId;
+    }
+
+    if (!isGoogleDriveConfigured()) {
+        googleAuthStatus.textContent = "Google: ingen Client ID konfigurerad.";
+        return;
+    }
+
+    const authState = getGoogleAuthState();
+    if (authState.signedIn) {
+        const emailPart = authState.email ? ` (${authState.email})` : "";
+        googleAuthStatus.textContent = `Google: inloggad${emailPart}.`;
+    } else {
+        googleAuthStatus.textContent = "Google: inte inloggad.";
+    }
+}
+
+function renderGoogleMapList(files = []) {
+    const { googleMapsList } = getDomElements();
+    if (!googleMapsList) return;
+
+    googleMapsList.innerHTML = "";
+
+    if (!isGoogleDriveConfigured()) {
+        googleMapsList.innerHTML = '<div class="empty-state">Lagg in Google Client ID och logga in for att anvanda molnlagring.</div>';
+        return;
+    }
+
+    const authState = getGoogleAuthState();
+    if (!authState.signedIn) {
+        googleMapsList.innerHTML = '<div class="empty-state">Logga in for att lista JSON i Google Drive.</div>';
+        return;
+    }
+
+    if (!files.length) {
+        googleMapsList.innerHTML = '<div class="empty-state">Inga JSON-filer hittades i Google Drive app storage.</div>';
+        return;
+    }
+
+    files.forEach((file) => {
+        const item = document.createElement("div");
+        item.className = "saved-map-item";
+        item.setAttribute("data-google-file-id", file.id);
+
+        const label = document.createElement("span");
+        label.className = "map-name";
+        label.textContent = normalizeCloudMapName(file.name);
+        label.title = `${file.name}${file.modifiedTime ? ` (${new Date(file.modifiedTime).toLocaleString()})` : ""}`;
+
+        const actions = document.createElement("div");
+        actions.className = "map-actions";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "map-action-btn delete";
+        deleteBtn.setAttribute("data-google-file-id", file.id);
+        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        deleteBtn.title = "Delete Google Drive JSON";
+
+        actions.appendChild(deleteBtn);
+        item.appendChild(label);
+        item.appendChild(actions);
+        googleMapsList.appendChild(item);
+    });
+}
+
+function ensureGoogleClientIdConfigured() {
+    if (isGoogleDriveConfigured()) {
+        return true;
+    }
+
+    const { googleClientIdInput } = getDomElements();
+    const entered = String(googleClientIdInput?.value || "").trim();
+    if (!entered) {
+        alert("Fyll i Google Client ID i Mappar-menyn och klicka Spara.");
+        return false;
+    }
+
+    setGoogleClientId(entered);
+    updateGoogleAuthUi();
+    return true;
+}
+
+export function handleGoogleClientIdSave(value) {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) {
+        alert("Google Client ID kan inte vara tomt.");
+        return false;
+    }
+
+    setGoogleClientId(trimmed);
+    updateGoogleAuthUi();
+    return true;
+}
+
+export async function handleGoogleDriveSignIn() {
+    try {
+        const configured = ensureGoogleClientIdConfigured();
+        if (!configured) return;
+
+        await signInToGoogleDrive();
+        await refreshGoogleMapList();
+    } catch (err) {
+        console.error("Google sign-in failed:", err);
+        alert(`Google sign-in failed: ${err.message}`);
+        updateGoogleAuthUi();
+        renderGoogleMapList([]);
+    }
+}
+
+export function handleGoogleDriveSignOut() {
+    signOutFromGoogleDrive();
+    googleMapsCache = [];
+    updateGoogleAuthUi();
+    renderGoogleMapList([]);
+}
+
+export async function refreshGoogleMapList(showErrorAlert = false) {
+    updateGoogleAuthUi();
+
+    if (!isGoogleDriveConfigured() || !getGoogleAuthState().signedIn) {
+        googleMapsCache = [];
+        renderGoogleMapList([]);
+        return;
+    }
+
+    try {
+        const files = await listJsonFilesFromGoogleDrive();
+        googleMapsCache = files;
+        renderGoogleMapList(files);
+    } catch (err) {
+        console.error("Failed to list Google Drive files:", err);
+        googleMapsCache = [];
+        renderGoogleMapList([]);
+        if (showErrorAlert) {
+            alert(`Could not list Google Drive JSON files: ${err.message}`);
+        }
+    }
+}
+
+export async function handleSaveToGoogleDrive() {
+    try {
+        const configured = ensureGoogleClientIdConfigured();
+        if (!configured) return;
+
+        if (!getGoogleAuthState().signedIn) {
+            await signInToGoogleDrive();
+        }
+
+        const mapData = buildMapData();
+        const fileName = getSuggestedMapFilename(mapData.name);
+        await saveJsonToGoogleDrive(fileName, mapData);
+
+        await refreshGoogleMapList();
+        alert(`Saved map to Google Drive as ${fileName}.`);
+    } catch (err) {
+        console.error("Failed to save map to Google Drive:", err);
+        alert(`Could not save to Google Drive: ${err.message}`);
+    }
+}
+
+export async function handleOpenGoogleMap(fileId) {
+    try {
+        const data = await getJsonFromGoogleDrive(fileId);
+        if (!data || !data.nodes || !data.nodes.root) {
+            throw new Error("Invalid MindFlow JSON structure.");
+        }
+
+        importMapData({
+            nodes: data.nodes,
+            relationships: data.relationships || [],
+            name: data.name || normalizeCloudMapName(googleMapsCache.find((f) => f.id === fileId)?.name || "")
+        }, data.name || "Google Drive", true);
+    } catch (err) {
+        console.error("Failed to load map from Google Drive:", err);
+        alert(`Could not load JSON from Google Drive: ${err.message}`);
+    }
+}
+
+export async function handleDeleteGoogleMap(fileId) {
+    const fileName = normalizeCloudMapName(googleMapsCache.find((f) => f.id === fileId)?.name || "selected map");
+    if (!confirm(`Delete Google Drive map \"${fileName}\"?`)) {
+        return;
+    }
+
+    try {
+        await deleteJsonFromGoogleDrive(fileId);
+        await refreshGoogleMapList();
+    } catch (err) {
+        console.error("Failed to delete Google Drive file:", err);
+        alert(`Could not delete JSON from Google Drive: ${err.message}`);
+    }
+}
+
 /**
  * Generate safe filename from map name
  */
@@ -323,6 +542,9 @@ export function deleteSavedMap(name, event) {
 export function loadMapList() {
     const { savedMapsList } = getDomElements();
     if (!savedMapsList) return;
+
+    // Refresh cloud list in the background without blocking local list rendering.
+    void refreshGoogleMapList();
 
     savedMapsList.innerHTML = "";
 

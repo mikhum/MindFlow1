@@ -8,7 +8,23 @@ import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, isDescendantOf } from './utils.js';
 import { render, renderConnectors, updateNodeStyleControls, showHelp, handleNodePointerDown } from './rendering.js';
 import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, setNodeTextAlign, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
-import { handleSaveMap, handleSaveAsMap, handleNewMap, handleOpenMindflow, handleImportFile, handleImportMindMeisterFile, loadMapList, saveAutosave } from './fileIO.js';
+import {
+    handleSaveMap,
+    handleSaveAsMap,
+    handleSaveToGoogleDrive,
+    handleGoogleDriveSignIn,
+    handleGoogleDriveSignOut,
+    handleGoogleClientIdSave,
+    refreshGoogleMapList,
+    handleOpenGoogleMap,
+    handleDeleteGoogleMap,
+    handleNewMap,
+    handleOpenMindflow,
+    handleImportFile,
+    handleImportMindMeisterFile,
+    loadMapList,
+    saveAutosave
+} from './fileIO.js';
 import { handleExportDoc, handleExportPdf } from './fileIO.js';
 import { zoom, resetViewport, handleWheel } from './viewport.js';
 import { navigateGeometrically, centerOnNode, scrollToNode } from './navigation.js';
@@ -107,11 +123,18 @@ export function setupEventListeners() {
         btnNewMap,
         btnSaveMap,
         btnSaveAsMap,
+        btnSaveGoogleMap,
         btnArrangeMap,
         btnExportDoc,
         btnExportPdf,
         btnOpenMindflow,
         btnImportMindMeister,
+        btnGoogleSignin,
+        btnGoogleSignout,
+        btnGoogleRefresh,
+        btnGoogleSaveClientId,
+        googleClientIdInput,
+        googleMapsList,
         topicSearchInput,
         topicSearchPrev,
         topicSearchNext,
@@ -196,6 +219,11 @@ export function setupEventListeners() {
     if (btnSaveAsMap) {
         btnSaveAsMap.addEventListener("click", handleSaveAsMap);
     }
+    if (btnSaveGoogleMap) {
+        btnSaveGoogleMap.addEventListener("click", () => {
+            handleSaveToGoogleDrive();
+        });
+    }
     if (btnArrangeMap) {
         btnArrangeMap.addEventListener("click", () => {
             layoutImportedMap();
@@ -220,6 +248,59 @@ export function setupEventListeners() {
     }
     if (btnImportMindMeister) {
         btnImportMindMeister.addEventListener("click", () => fileImportMindMeisterInput.click());
+    }
+    if (btnGoogleSignin) {
+        btnGoogleSignin.addEventListener("click", () => {
+            handleGoogleDriveSignIn();
+        });
+    }
+    if (btnGoogleSignout) {
+        btnGoogleSignout.addEventListener("click", () => {
+            handleGoogleDriveSignOut();
+        });
+    }
+    if (btnGoogleRefresh) {
+        btnGoogleRefresh.addEventListener("click", () => {
+            refreshGoogleMapList(true);
+        });
+    }
+    if (btnGoogleSaveClientId) {
+        btnGoogleSaveClientId.addEventListener("click", () => {
+            const value = googleClientIdInput?.value || "";
+            const saved = handleGoogleClientIdSave(value);
+            if (saved) {
+                refreshGoogleMapList();
+            }
+        });
+    }
+    if (googleClientIdInput) {
+        googleClientIdInput.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            const saved = handleGoogleClientIdSave(googleClientIdInput.value || "");
+            if (saved) {
+                refreshGoogleMapList();
+            }
+        });
+    }
+    if (googleMapsList) {
+        googleMapsList.addEventListener("click", (e) => {
+            const target = e.target;
+            if (!(target instanceof Element)) return;
+            const item = target.closest(".saved-map-item[data-google-file-id]");
+            if (!item) return;
+
+            const fileId = item.getAttribute("data-google-file-id");
+            if (!fileId) return;
+
+            const deleteBtn = target.closest(".map-action-btn.delete[data-google-file-id]");
+            if (deleteBtn) {
+                handleDeleteGoogleMap(fileId);
+                return;
+            }
+
+            handleOpenGoogleMap(fileId);
+        });
     }
     fileImportInput.addEventListener("change", handleImportFile);
     fileImportMindMeisterInput.addEventListener("change", handleImportMindMeisterFile);

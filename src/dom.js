@@ -5,11 +5,60 @@
 
 let domElements = null;
 
+function ensureCloudMenuMarkup() {
+    const hasGoogleControls = !!document.getElementById("btn-google-signin");
+    if (hasGoogleControls) {
+        return;
+    }
+
+    const mapparTrigger = Array.from(document.querySelectorAll(".menu-trigger")).find(
+        (btn) => (btn.textContent || "").trim().toLowerCase() === "mappar"
+    );
+    const dropdown = mapparTrigger?.closest(".menu-item")?.querySelector(".menu-dropdown");
+    if (!dropdown) {
+        return;
+    }
+
+    const existingLocalList = dropdown.querySelector("#saved-maps-list");
+    const localListMarkup = existingLocalList
+        ? existingLocalList.outerHTML
+        : '<div class="saved-maps-list" id="saved-maps-list"><div class="empty-state">No saved maps found in browser storage.</div></div>';
+
+    dropdown.innerHTML = `
+        <div class="cloud-auth-row">
+            <button class="btn btn-outline" id="btn-google-signin" title="Sign in with Google">
+                <i class="fa-brands fa-google"></i> Logga in Google
+            </button>
+            <button class="btn btn-outline" id="btn-google-signout" title="Sign out from Google">
+                <i class="fa-solid fa-right-from-bracket"></i> Logga ut
+            </button>
+        </div>
+        <button class="btn btn-outline" id="btn-google-refresh" title="Refresh Google Drive files">
+            <i class="fa-solid fa-rotate"></i> Uppdatera Google-lista
+        </button>
+        <label class="form-label" for="google-client-id-input">Google Client ID</label>
+        <div class="button-group-row">
+            <input id="google-client-id-input" class="topic-search-input" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" aria-label="Google Client ID">
+            <button class="btn btn-outline" id="btn-google-save-client-id" title="Save Google Client ID">
+                <i class="fa-solid fa-check"></i> Spara
+            </button>
+        </div>
+        <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
+        <div class="saved-maps-list" id="google-maps-list">
+            <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
+        </div>
+        <div class="menu-separator"></div>
+        ${localListMarkup}
+    `;
+}
+
 /**
  * Initialize all DOM element references
  * Should be called once during app initialization
  */
 export function initDomElements() {
+    ensureCloudMenuMarkup();
+
     domElements = {
         // Main containers
         workspace: document.getElementById("workspace"),
@@ -35,6 +84,7 @@ export function initDomElements() {
         btnNewMap: document.getElementById("btn-new-map"),
         btnSaveMap: document.getElementById("btn-save-map"),
         btnSaveAsMap: document.getElementById("btn-save-as-map"),
+        btnSaveGoogleMap: document.getElementById("btn-save-google-map"),
         btnArrangeMap: document.getElementById("btn-arrange-map"),
         btnExportDoc: document.getElementById("btn-export-doc"),
         btnExportPdf: document.getElementById("btn-export-pdf"),
@@ -42,6 +92,11 @@ export function initDomElements() {
         btnOpenMindflow: document.getElementById("btn-open-mindflow"),
         btnImportMindMeister: document.getElementById("btn-import-mindmeister"),
         savedMapsList: document.getElementById("saved-maps-list"),
+        googleMapsList: document.getElementById("google-maps-list"),
+        btnGoogleSignin: document.getElementById("btn-google-signin"),
+        btnGoogleSignout: document.getElementById("btn-google-signout"),
+        btnGoogleRefresh: document.getElementById("btn-google-refresh"),
+        googleAuthStatus: document.getElementById("google-auth-status"),
         topicSearchInput: document.getElementById("topic-search-input"),
         topicSearchPrev: document.getElementById("topic-search-prev"),
         topicSearchNext: document.getElementById("topic-search-next"),

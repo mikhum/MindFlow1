@@ -452,6 +452,15 @@ body, html {
     padding-right: 4px;
 }
 
+.cloud-auth-row {
+    display: flex;
+    gap: 8px;
+}
+
+.cloud-auth-row .btn {
+    flex: 1;
+}
+
 .saved-map-item {
     display: flex;
     justify-content: space-between;

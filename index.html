@@ -33,6 +33,9 @@
                         <button class="btn btn-outline" id="btn-save-as-map">
                             <i class="fa-regular fa-floppy-disk"></i> Spara som
                         </button>
+                        <button class="btn btn-outline" id="btn-save-google-map" title="Save current map to Google Drive app storage">
+                            <i class="fa-brands fa-google-drive"></i> Spara till Google Drive
+                        </button>
                         <button class="btn btn-outline" id="btn-arrange-map" title="Arrange and center the current map">
                             <i class="fa-solid fa-sitemap"></i> Arrange Map
                         </button>
@@ -111,6 +114,29 @@
                 <div class="menu-item">
                     <button class="menu-trigger" type="button">Mappar</button>
                     <div class="menu-dropdown" role="menu">
+                        <div class="cloud-auth-row">
+                            <button class="btn btn-outline" id="btn-google-signin" title="Sign in with Google">
+                                <i class="fa-brands fa-google"></i> Logga in Google
+                            </button>
+                            <button class="btn btn-outline" id="btn-google-signout" title="Sign out from Google">
+                                <i class="fa-solid fa-right-from-bracket"></i> Logga ut
+                            </button>
+                        </div>
+                        <button class="btn btn-outline" id="btn-google-refresh" title="Refresh Google Drive files">
+                            <i class="fa-solid fa-rotate"></i> Uppdatera Google-lista
+                        </button>
+                        <label class="form-label" for="google-client-id-input">Google Client ID</label>
+                        <div class="button-group-row">
+                            <input id="google-client-id-input" class="topic-search-input" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" aria-label="Google Client ID">
+                            <button class="btn btn-outline" id="btn-google-save-client-id" title="Save Google Client ID">
+                                <i class="fa-solid fa-check"></i> Spara
+                            </button>
+                        </div>
+                        <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
+                        <div class="saved-maps-list" id="google-maps-list">
+                            <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
+                        </div>
+                        <div class="menu-separator"></div>
                         <div class="saved-maps-list" id="saved-maps-list">
                             <div class="empty-state">No saved maps found in browser storage.</div>
                         </div>
