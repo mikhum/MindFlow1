@@ -5,6 +5,7 @@
 
 import { state } from './state.js';
 import { generateId } from './utils.js';
+import { getAbsoluteCoords } from './utils.js';
 
 /**
  * Arrange map in a readable left/right tree layout.
@@ -37,11 +38,49 @@ export function layoutImportedMap() {
     }
 
     const absPositions = {};
-    const rootSpacingX = 350;
-    const depthSpacingX = 220;
-    const spacingY = 120;
-    const siblingGap = 36;
-    const rootSiblingGap = 54;
+    const rootSpacingX = 360;
+    const depthSpacingX = 180;
+    const spacingY = 130;
+    const siblingGap = 48;
+    const rootSiblingGap = 72;
+
+    function getNodeVisualWidth(nodeId) {
+        const renderedNode = document.getElementById(`node-${nodeId}`);
+        if (renderedNode && renderedNode.offsetWidth > 0) {
+            return renderedNode.offsetWidth;
+        }
+
+        const node = state.nodes[nodeId];
+        if (!node) return 160;
+
+        if (Number.isFinite(node.width) && node.width > 0) {
+            return node.width;
+        }
+
+        const text = String(node.text || "");
+        const approx = Math.min(360, Math.max(120, text.length * 6.4 + 56));
+        return approx;
+    }
+
+    function getNodeVisualHeight(nodeId) {
+        const renderedNode = document.getElementById(`node-${nodeId}`);
+        if (renderedNode && renderedNode.offsetHeight > 0) {
+            return renderedNode.offsetHeight;
+        }
+
+        const node = state.nodes[nodeId];
+        if (!node) return 48;
+
+        if (Number.isFinite(node.height) && node.height > 0) {
+            return node.height;
+        }
+
+        const text = String(node.text || "");
+        const hardLineCount = text.split(/\n/).length;
+        const wrapLineCount = Math.max(1, Math.ceil(text.length / 28));
+        const lineCount = Math.max(hardLineCount, wrapLineCount);
+        return 40 + Math.max(0, lineCount - 1) * 20;
+    }
 
     // Place root at origin
     absPositions.root = { x: 0, y: 0 };
@@ -60,15 +99,44 @@ export function layoutImportedMap() {
     let rightCount = 0;
     let leftCount = 0;
 
+    function getSubtreeAverageAbsoluteX(nodeId) {
+        let sum = 0;
+        let count = 0;
+
+        function walk(id) {
+            if (!state.nodes[id]) return;
+            sum += getAbsoluteCoords(id, true).x;
+            count += 1;
+
+            const children = childrenMap[id] || [];
+            children.forEach((childId) => walk(childId));
+        }
+
+        walk(nodeId);
+        return count > 0 ? sum / count : 0;
+    }
+
     sortByCurrentY(rootChildren).forEach((childId, index) => {
         const existingX = Number(state.nodes[childId]?.x) || 0;
+        const nodeWidth = getNodeVisualWidth(childId);
+        const leftEdge = existingX - nodeWidth / 2;
+        const rightEdge = existingX + nodeWidth / 2;
         let side = 0;
 
-        if (existingX > 1) {
+        if (leftEdge > 20) {
             side = 1;
-        } else if (existingX < -1) {
+        } else if (rightEdge < -20) {
             side = -1;
         } else {
+            const subtreeAvgX = getSubtreeAverageAbsoluteX(childId);
+            if (subtreeAvgX > 20) {
+                side = 1;
+            } else if (subtreeAvgX < -20) {
+                side = -1;
+            }
+        }
+
+        if (side === 0) {
             // If side is unknown, balance sides while preserving order.
             side = rightCount <= leftCount ? 1 : -1;
             if (rightCount === leftCount) {
@@ -86,14 +154,15 @@ export function layoutImportedMap() {
 
     function getSubtreeHeight(nodeId) {
         const children = childrenMap[nodeId] || [];
-        if (children.length === 0) return spacingY;
+        const ownHeight = Math.max(spacingY, getNodeVisualHeight(nodeId) + 20);
+        if (children.length === 0) return ownHeight;
 
         const totalChildrenHeight = children.reduce((sum, childId) => {
             return sum + getSubtreeHeight(childId);
         }, 0);
 
         return Math.max(
-            spacingY,
+            ownHeight,
             totalChildrenHeight + siblingGap * Math.max(0, children.length - 1)
         );
     }
@@ -110,7 +179,10 @@ export function layoutImportedMap() {
         children.forEach(childId => {
             const childHeight = getSubtreeHeight(childId);
             const childY = currentY + childHeight / 2;
-            const childX = parentAbsX + depthSpacingX * side;
+            const parentW = getNodeVisualWidth(nodeId);
+            const childW = getNodeVisualWidth(childId);
+            const linkDistance = depthSpacingX + Math.round(parentW * 0.52 + childW * 0.38);
+            const childX = parentAbsX + linkDistance * side;
             absPositions[childId] = { x: childX, y: childY, side };
             currentY += childHeight + siblingGap;
 
@@ -131,7 +203,10 @@ export function layoutImportedMap() {
         sideChildren.forEach((childId) => {
             const childHeight = getSubtreeHeight(childId);
             const childY = currentY + childHeight / 2;
-            const childX = rootSpacingX * side;
+            const rootW = getNodeVisualWidth("root");
+            const childW = getNodeVisualWidth(childId);
+            const rootLinkDistance = rootSpacingX + Math.round(rootW * 0.48 + childW * 0.4);
+            const childX = rootLinkDistance * side;
 
             absPositions[childId] = { x: childX, y: childY, side };
             layoutSubtree(childId, childX, childY, side);
