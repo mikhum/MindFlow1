@@ -71,6 +71,10 @@ function ensureTokenClient(clientId) {
 }
 
 async function requestAccessToken(interactivePrompt) {
+    if (window.location?.protocol === "file:") {
+        throw new Error("Google OAuth fungerar inte via file://. Oppna appen via GitHub Pages-URL (https://...) eller lokal http-server.");
+    }
+
     const clientId = getConfiguredClientId();
     if (!clientId) {
         throw new Error("Google Client ID is not configured.");

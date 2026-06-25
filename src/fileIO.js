@@ -269,6 +269,11 @@ function updateGoogleAuthUi() {
         return;
     }
 
+    if (window.location?.protocol === "file:") {
+        googleAuthStatus.textContent = "Google: OAuth kraver https:// eller http://localhost (inte file://).";
+        return;
+    }
+
     const authState = getGoogleAuthState();
     if (authState.signedIn) {
         const emailPart = authState.email ? ` (${authState.email})` : "";
@@ -331,13 +336,17 @@ function ensureGoogleClientIdConfigured() {
         return true;
     }
 
-    const { googleClientIdInput } = getDomElements();
-    const entered = String(googleClientIdInput?.value || "").trim();
+    const dom = getDomElements();
+    const inputFromDomRef = String(dom.googleClientIdInput?.value || "").trim();
+    const inputFromDocument = String(document.getElementById("google-client-id-input")?.value || "").trim();
+    const entered = inputFromDomRef || inputFromDocument;
+
     if (!entered) {
         alert("Fyll i Google Client ID i Mappar-menyn och klicka Spara.");
         return false;
     }
 
+    // Accept typed Client ID directly on sign-in even if user forgot to press Save.
     setGoogleClientId(entered);
     updateGoogleAuthUi();
     return true;
