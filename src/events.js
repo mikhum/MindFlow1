@@ -199,6 +199,8 @@ export function setupEventListeners() {
     if (btnArrangeMap) {
         btnArrangeMap.addEventListener("click", () => {
             layoutImportedMap();
+            saveHistory();
+            saveAutosave();
             render();
             centerOnNode("root");
         });

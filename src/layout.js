@@ -7,7 +7,8 @@ import { state } from './state.js';
 import { generateId } from './utils.js';
 
 /**
- * Auto-layout imported map with circular arrangement for depth-1, balanced tree for deeper levels
+ * Arrange map in a readable left/right tree layout.
+ * Root children are placed on left/right sides, and descendants continue on the same side.
  */
 export function layoutImportedMap() {
     const childrenMap = {};
@@ -27,15 +28,25 @@ export function layoutImportedMap() {
         return count;
     }
 
+    function sortByCurrentY(ids) {
+        return [...ids].sort((a, b) => {
+            const ay = Number(state.nodes[a]?.y) || 0;
+            const by = Number(state.nodes[b]?.y) || 0;
+            return ay - by;
+        });
+    }
+
     const absPositions = {};
-    const spacingX = 220;
-    const spacingY = 100;
-    const siblingGap = 30;
+    const rootSpacingX = 350;
+    const depthSpacingX = 220;
+    const spacingY = 120;
+    const siblingGap = 36;
+    const rootSiblingGap = 54;
 
     // Place root at origin
     absPositions.root = { x: 0, y: 0 };
 
-    // Get depth-1 children and arrange them in a circle
+    // Get depth-1 children
     const rootChildren = childrenMap.root || [];
     if (rootChildren.length === 0) {
         // No children to arrange
@@ -44,43 +55,89 @@ export function layoutImportedMap() {
         return;
     }
 
-    // Circular arrangement for depth-1 nodes
-    const circleRadius = 350; // Distance from root to depth-1 nodes
-    rootChildren.forEach((childId, index) => {
-        const angle = (index / rootChildren.length) * 2 * Math.PI;
-        const x = circleRadius * Math.cos(angle);
-        const y = circleRadius * Math.sin(angle);
-        absPositions[childId] = { x, y, side: x >= 0 ? 1 : -1 };
+    // Pick side for each root child. Preserve existing side when available.
+    const sideByRootChild = new Map();
+    let rightCount = 0;
+    let leftCount = 0;
+
+    sortByCurrentY(rootChildren).forEach((childId, index) => {
+        const existingX = Number(state.nodes[childId]?.x) || 0;
+        let side = 0;
+
+        if (existingX > 1) {
+            side = 1;
+        } else if (existingX < -1) {
+            side = -1;
+        } else {
+            // If side is unknown, balance sides while preserving order.
+            side = rightCount <= leftCount ? 1 : -1;
+            if (rightCount === leftCount) {
+                side = index % 2 === 0 ? 1 : -1;
+            }
+        }
+
+        sideByRootChild.set(childId, side);
+        if (side > 0) {
+            rightCount++;
+        } else {
+            leftCount++;
+        }
     });
 
-    // Layout deeper levels to the right or left of their parent
-    function layoutSubtree(nodeId, parentAbsX, parentAbsY, side) {
+    function getSubtreeHeight(nodeId) {
         const children = childrenMap[nodeId] || [];
+        if (children.length === 0) return spacingY;
+
+        const totalChildrenHeight = children.reduce((sum, childId) => {
+            return sum + getSubtreeHeight(childId);
+        }, 0);
+
+        return Math.max(
+            spacingY,
+            totalChildrenHeight + siblingGap * Math.max(0, children.length - 1)
+        );
+    }
+
+    function layoutSubtree(nodeId, parentAbsX, parentAbsY, side) {
+        const children = sortByCurrentY(childrenMap[nodeId] || []);
         if (children.length === 0) return;
 
-        // Calculate total height needed for all children
         const totalHeight = children.reduce((sum, childId) => {
-            return sum + getSubtreeCount(childId) * spacingY;
+            return sum + getSubtreeHeight(childId);
         }, 0) + siblingGap * Math.max(0, children.length - 1);
 
-        // Place children horizontally and vertically
-        let currentY = parentAbsY - totalHeight / 2 + spacingY / 2;
+        let currentY = parentAbsY - totalHeight / 2;
         children.forEach(childId => {
-            const childHeight = getSubtreeCount(childId) * spacingY;
-            const childY = currentY + childHeight / 2 - spacingY / 2;
-            const childX = parentAbsX + spacingX * side; // Extend in the same direction (left or right)
+            const childHeight = getSubtreeHeight(childId);
+            const childY = currentY + childHeight / 2;
+            const childX = parentAbsX + depthSpacingX * side;
             absPositions[childId] = { x: childX, y: childY, side };
             currentY += childHeight + siblingGap;
 
-            // Recursively layout deeper levels
             layoutSubtree(childId, childX, childY, side);
         });
     }
 
-    // Layout depth-2 and deeper for each depth-1 node
-    rootChildren.forEach((depth1Id) => {
-        const abs1 = absPositions[depth1Id];
-        layoutSubtree(depth1Id, abs1.x, abs1.y, abs1.side);
+    // Place root children side-by-side with balanced vertical spacing on each side.
+    [1, -1].forEach((side) => {
+        const sideChildren = sortByCurrentY(rootChildren.filter((id) => sideByRootChild.get(id) === side));
+        if (sideChildren.length === 0) return;
+
+        const totalHeight = sideChildren.reduce((sum, childId) => {
+            return sum + getSubtreeHeight(childId);
+        }, 0) + rootSiblingGap * Math.max(0, sideChildren.length - 1);
+
+        let currentY = -totalHeight / 2;
+        sideChildren.forEach((childId) => {
+            const childHeight = getSubtreeHeight(childId);
+            const childY = currentY + childHeight / 2;
+            const childX = rootSpacingX * side;
+
+            absPositions[childId] = { x: childX, y: childY, side };
+            layoutSubtree(childId, childX, childY, side);
+
+            currentY += childHeight + rootSiblingGap;
+        });
     });
 
     // Convert absolute positions to relative parent-relative positions
