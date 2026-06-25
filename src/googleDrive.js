@@ -162,6 +162,25 @@ function buildMultipartBody(metadata, jsonContent, boundary) {
     ].join("\r\n");
 }
 
+    async function toGoogleApiError(response, fallbackMessage) {
+        let detailed = "";
+        try {
+            const body = await response.json();
+            const err = body?.error;
+            const reason = err?.errors?.[0]?.reason;
+            const message = err?.message;
+            detailed = [message, reason].filter(Boolean).join(" | ");
+        } catch {
+            detailed = "";
+        }
+
+        if (detailed) {
+            return new Error(`${fallbackMessage} (${response.status}): ${detailed}`);
+        }
+
+        return new Error(`${fallbackMessage} (${response.status}).`);
+    }
+
 export function isGoogleDriveConfigured() {
     return !!getConfiguredClientId();
 }
@@ -218,7 +237,7 @@ export async function listJsonFilesFromGoogleDrive() {
     const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${encodeURIComponent(query)}&fields=${encodeURIComponent("files(id,name,modifiedTime,size)")}&orderBy=modifiedTime desc&pageSize=200`;
     const response = await driveFetch(url);
     if (!response.ok) {
-        throw new Error(`Could not list Google Drive files (${response.status}).`);
+           throw await toGoogleApiError(response, "Could not list Google Drive files");
     }
 
     const data = await response.json();
@@ -229,7 +248,7 @@ export async function getJsonFromGoogleDrive(fileId) {
     const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`;
     const response = await driveFetch(url);
     if (!response.ok) {
-        throw new Error(`Could not load file from Google Drive (${response.status}).`);
+           throw await toGoogleApiError(response, "Could not load file from Google Drive");
     }
     return response.json();
 }
@@ -238,7 +257,7 @@ export async function deleteJsonFromGoogleDrive(fileId) {
     const url = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`;
     const response = await driveFetch(url, { method: "DELETE" });
     if (!response.ok && response.status !== 204) {
-        throw new Error(`Could not delete file from Google Drive (${response.status}).`);
+           throw await toGoogleApiError(response, "Could not delete file from Google Drive");
     }
 }
 
@@ -253,7 +272,7 @@ async function findAppDataFileByName(fileName) {
     const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${encodeURIComponent(query)}&fields=${encodeURIComponent("files(id,name)")}&pageSize=1`;
     const response = await driveFetch(url);
     if (!response.ok) {
-        throw new Error(`Could not query file by name (${response.status}).`);
+           throw await toGoogleApiError(response, "Could not query file by name");
     }
 
     const data = await response.json();
@@ -274,7 +293,7 @@ export async function saveJsonToGoogleDrive(fileName, jsonContent) {
         });
 
         if (!updateResponse.ok) {
-            throw new Error(`Could not update file in Google Drive (${updateResponse.status}).`);
+                throw await toGoogleApiError(updateResponse, "Could not update file in Google Drive");
         }
 
         const updatedMeta = await updateResponse.json();
@@ -302,7 +321,7 @@ export async function saveJsonToGoogleDrive(fileName, jsonContent) {
     });
 
     if (!createResponse.ok) {
-        throw new Error(`Could not create file in Google Drive (${createResponse.status}).`);
+            throw await toGoogleApiError(createResponse, "Could not create file in Google Drive");
     }
 
     const createdMeta = await createResponse.json();

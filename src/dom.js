@@ -36,13 +36,6 @@ function ensureCloudMenuMarkup() {
         <button class="btn btn-outline" id="btn-google-refresh" title="Refresh Google Drive files">
             <i class="fa-solid fa-rotate"></i> Uppdatera Google-lista
         </button>
-        <label class="form-label" for="google-client-id-input">Google Client ID</label>
-        <div class="button-group-row">
-            <input id="google-client-id-input" class="topic-search-input" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" aria-label="Google Client ID">
-            <button class="btn btn-outline" id="btn-google-save-client-id" title="Save Google Client ID">
-                <i class="fa-solid fa-check"></i> Spara
-            </button>
-        </div>
         <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
         <div class="saved-maps-list" id="google-maps-list">
             <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
@@ -96,6 +89,10 @@ export function initDomElements() {
         btnGoogleSignin: document.getElementById("btn-google-signin"),
         btnGoogleSignout: document.getElementById("btn-google-signout"),
         btnGoogleRefresh: document.getElementById("btn-google-refresh"),
+        btnGoogleEditClientId: document.getElementById("btn-google-edit-client-id"),
+        googleClientIdConfigContainer: document.getElementById("google-client-id-config"),
+        btnGoogleSaveClientId: document.getElementById("btn-google-save-client-id"),
+        googleClientIdInput: document.getElementById("google-client-id-input"),
         googleAuthStatus: document.getElementById("google-auth-status"),
         topicSearchInput: document.getElementById("topic-search-input"),
         topicSearchPrev: document.getElementById("topic-search-prev"),

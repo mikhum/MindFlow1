@@ -14,6 +14,7 @@ import {
     handleSaveToGoogleDrive,
     handleGoogleDriveSignIn,
     handleGoogleDriveSignOut,
+    showGoogleClientIdEditor,
     handleGoogleClientIdSave,
     refreshGoogleMapList,
     handleOpenGoogleMap,
@@ -132,6 +133,7 @@ export function setupEventListeners() {
         btnGoogleSignin,
         btnGoogleSignout,
         btnGoogleRefresh,
+        btnGoogleEditClientId,
         btnGoogleSaveClientId,
         googleClientIdInput,
         googleMapsList,
@@ -262,6 +264,11 @@ export function setupEventListeners() {
     if (btnGoogleRefresh) {
         btnGoogleRefresh.addEventListener("click", () => {
             refreshGoogleMapList(true);
+        });
+    }
+    if (btnGoogleEditClientId) {
+        btnGoogleEditClientId.addEventListener("click", () => {
+            showGoogleClientIdEditor();
         });
     }
     if (btnGoogleSaveClientId) {

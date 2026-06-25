@@ -125,13 +125,6 @@
                         <button class="btn btn-outline" id="btn-google-refresh" title="Refresh Google Drive files">
                             <i class="fa-solid fa-rotate"></i> Uppdatera Google-lista
                         </button>
-                        <label class="form-label" for="google-client-id-input">Google Client ID</label>
-                        <div class="button-group-row">
-                            <input id="google-client-id-input" class="topic-search-input" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" aria-label="Google Client ID">
-                            <button class="btn btn-outline" id="btn-google-save-client-id" title="Save Google Client ID">
-                                <i class="fa-solid fa-check"></i> Spara
-                            </button>
-                        </div>
                         <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
                         <div class="saved-maps-list" id="google-maps-list">
                             <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
@@ -277,6 +270,12 @@
             </div>
         </div>
     </div>
+
+    <script>
+        window.MIND_FLOW_CONFIG = {
+            googleClientId: "150867957379-2rrvh61j5e7raahottk1ft7h5jj2u69r.apps.googleusercontent.com"
+        };
+    </script>
 
     <!-- Core App JS (ES6 Module) -->
     <script type="module" src="src/app.js"></script>

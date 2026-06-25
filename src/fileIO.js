@@ -26,6 +26,7 @@ import {
 const DEFAULT_ROOT_COLOR = "#0ea5e9";
 let pdfLibrariesPromise = null;
 let googleMapsCache = [];
+let showGoogleClientConfig = false;
 
 function clearCurrentFileBinding() {
     state.saveFileHandle = null;
@@ -256,12 +257,27 @@ function normalizeCloudMapName(fileName) {
 }
 
 function updateGoogleAuthUi() {
-    const { googleAuthStatus, googleClientIdInput } = getDomElements();
+    const {
+        googleAuthStatus,
+        googleClientIdInput,
+        googleClientIdConfigContainer,
+        btnGoogleEditClientId
+    } = getDomElements();
     if (!googleAuthStatus) return;
 
     const currentClientId = getGoogleClientId();
+    const hasSavedClientId = !!currentClientId;
+    const showConfigEditor = !hasSavedClientId || showGoogleClientConfig;
+
     if (googleClientIdInput && googleClientIdInput.value !== currentClientId) {
         googleClientIdInput.value = currentClientId;
+    }
+
+    if (googleClientIdConfigContainer) {
+        googleClientIdConfigContainer.style.display = showConfigEditor ? "" : "none";
+    }
+    if (btnGoogleEditClientId) {
+        btnGoogleEditClientId.style.display = hasSavedClientId && !showConfigEditor ? "" : "none";
     }
 
     if (!isGoogleDriveConfigured()) {
@@ -360,8 +376,14 @@ export function handleGoogleClientIdSave(value) {
     }
 
     setGoogleClientId(trimmed);
+    showGoogleClientConfig = false;
     updateGoogleAuthUi();
     return true;
+}
+
+export function showGoogleClientIdEditor() {
+    showGoogleClientConfig = true;
+    updateGoogleAuthUi();
 }
 
 export async function handleGoogleDriveSignIn() {
