@@ -97,6 +97,21 @@
                 <div class="menu-item">
                     <button class="menu-trigger" type="button">Visa</button>
                     <div class="menu-dropdown" role="menu">
+                        <label class="form-label" for="visible-depth-input">Visa nivåer från Central topic</label>
+                        <div class="button-group-row">
+                            <input type="number" id="visible-depth-input" class="topic-search-input" min="1" step="1" placeholder="Alla" aria-label="Max visible levels from central topic">
+                            <button class="btn btn-outline" id="visible-depth-clear" type="button" title="Visa alla nivåer">
+                                <i class="fa-solid fa-layer-group"></i> Alla
+                            </button>
+                        </div>
+                        <div class="visible-depth-quick-buttons" id="visible-depth-quick-buttons">
+                            <button class="btn btn-outline visible-depth-quick-btn" type="button" data-depth="1">1</button>
+                            <button class="btn btn-outline visible-depth-quick-btn" type="button" data-depth="2">2</button>
+                            <button class="btn btn-outline visible-depth-quick-btn" type="button" data-depth="3">3</button>
+                            <button class="btn btn-outline visible-depth-quick-btn" type="button" data-depth="4">4</button>
+                            <button class="btn btn-outline visible-depth-quick-btn" type="button" data-depth="all">Alla</button>
+                        </div>
+                        <p class="field-hint" id="visible-depth-status">Visar alla nivåer.</p>
                         <label class="form-label" for="topic-search-input">Sök topic</label>
                         <input type="search" id="topic-search-input" class="topic-search-input" placeholder="Search text in topics..." aria-label="Search topics">
                         <div class="button-group-row" style="margin-top: 8px;">
@@ -150,6 +165,23 @@
             <button class="maps-sidebar-toggle" id="btn-toggle-maps-sidebar" type="button" aria-controls="maps-sidebar" aria-expanded="true" title="Kollapsa mapp-sidebar">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
+
+            <section class="visible-depth-panel" id="visible-depth-panel" aria-label="Nivåfilter">
+                <div class="visible-depth-panel-header">
+                    <span class="visible-depth-panel-title">Nivåfilter</span>
+                    <span class="visible-depth-badge" id="visible-depth-badge">Alla nivåer</span>
+                </div>
+                <div class="toolbar-visible-depth" aria-label="Visa nivåer">
+                    <input type="number" id="toolbar-visible-depth-input" class="toolbar-visible-depth-input" min="1" step="1" placeholder="Alla" aria-label="Max visible levels from central topic toolbar">
+                    <div class="toolbar-visible-depth-buttons" id="toolbar-visible-depth-buttons">
+                        <button class="control-pill visible-depth-quick-btn" type="button" data-depth="1">1</button>
+                        <button class="control-pill visible-depth-quick-btn" type="button" data-depth="2">2</button>
+                        <button class="control-pill visible-depth-quick-btn" type="button" data-depth="3">3</button>
+                        <button class="control-pill visible-depth-quick-btn" type="button" data-depth="4">4</button>
+                        <button class="control-pill visible-depth-quick-btn" type="button" data-depth="all">Alla</button>
+                    </div>
+                </div>
+            </section>
 
             <!-- Persistent Maps Sidebar -->
             <aside class="maps-sidebar" id="maps-sidebar" aria-label="Mappar">

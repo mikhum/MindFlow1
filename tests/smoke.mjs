@@ -99,6 +99,9 @@ try {
   assert.equal(liveRelationshipColor, '#10b981', 'expected relationship color to update in the UI');
 
   await page.getByRole('button', { name: 'Arkiv' }).click();
+  if (!await page.locator('#btn-save-map').isVisible()) {
+    await page.getByRole('button', { name: 'Arkiv' }).click();
+  }
   await page.waitForTimeout(100);
   await page.locator('#btn-save-map').click({ force: true });
   await page.waitForTimeout(100);
@@ -107,6 +110,39 @@ try {
   const latestMap = Object.values(savedMaps).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
   assert.equal(latestMap?.relationships?.[0]?.color, '#10b981', 'expected relationship color to persist in saved maps');
   assert.equal(latestMap?.relationships?.[0]?.comment, 'Relationship note', 'expected relationship comment to persist in saved maps');
+
+  await page.locator('.node').nth(1).click({ force: true });
+  await page.locator('#ctrl-add-child').click({ force: true });
+  await page.waitForTimeout(100);
+  const afterAddGrandchild = await page.locator('.node').count();
+  assert.equal(afterAddGrandchild, 4, 'expected Add Child on a branch node to create a grandchild');
+
+  await page.getByRole('button', { name: 'Visa' }).click();
+  await page.locator('#visible-depth-input').fill('1');
+  await page.waitForTimeout(100);
+  const afterDepthLimit = await page.locator('.node').count();
+  assert.equal(afterDepthLimit, 3, 'expected visible depth 1 to hide grandchildren');
+
+  await page.locator('#visible-depth-clear').click({ force: true });
+  await page.waitForTimeout(100);
+  const afterDepthReset = await page.locator('.node').count();
+  assert.equal(afterDepthReset, 4, 'expected clearing the visible depth limit to show all nodes again');
+
+  await page.locator('#toolbar-visible-depth-buttons .visible-depth-quick-btn[data-depth="1"]').click({ force: true });
+  await page.waitForTimeout(100);
+  const afterToolbarDepthLimit = await page.locator('.node').count();
+  assert.equal(afterToolbarDepthLimit, 3, 'expected toolbar quick button to apply visible depth filtering');
+  const storedVisibleDepth = await page.evaluate(() => localStorage.getItem('mindflow_visible_depth_limit'));
+  assert.equal(storedVisibleDepth, '1', 'expected visible depth limit to persist in localStorage');
+
+  await page.reload();
+  await page.waitForSelector('.node');
+  const afterReloadWithPersistedDepth = await page.locator('.node').count();
+  assert.equal(afterReloadWithPersistedDepth, 3, 'expected persisted visible depth limit to be restored after reload');
+  const restoredMenuInputValue = await page.locator('#visible-depth-input').inputValue();
+  const restoredToolbarInputValue = await page.locator('#toolbar-visible-depth-input').inputValue();
+  assert.equal(restoredMenuInputValue, '1', 'expected menu input to reflect restored visible depth limit');
+  assert.equal(restoredToolbarInputValue, '1', 'expected toolbar input to reflect restored visible depth limit');
 
   assert.equal(pageErrors.length, 0, `expected no page errors, got: ${pageErrors.join('; ')}`);
   console.log('MindFlow smoke test passed');

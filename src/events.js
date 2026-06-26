@@ -44,6 +44,7 @@ import {
 import { updateCanvasTransform } from './viewport.js';
 
 const MAPS_SIDEBAR_COLLAPSED_STORAGE_KEY = "mindflow_maps_sidebar_collapsed";
+const VISIBLE_DEPTH_LIMIT_STORAGE_KEY = "mindflow_visible_depth_limit";
 
 function setMapsSidebarCollapsed(workspace, btnToggleMapsSidebar, collapsed) {
     if (!workspace || !btnToggleMapsSidebar) return;
@@ -69,6 +70,83 @@ function writeMapsSidebarCollapsedPreference(collapsed) {
     }
 }
 
+function readVisibleDepthLimitPreference() {
+    try {
+        const rawValue = localStorage.getItem(VISIBLE_DEPTH_LIMIT_STORAGE_KEY);
+        if (!rawValue) return null;
+        const parsed = Number.parseInt(rawValue, 10);
+        return Number.isFinite(parsed) && parsed >= 1 ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function writeVisibleDepthLimitPreference(value) {
+    try {
+        if (typeof value === "number") {
+            localStorage.setItem(VISIBLE_DEPTH_LIMIT_STORAGE_KEY, String(value));
+        } else {
+            localStorage.removeItem(VISIBLE_DEPTH_LIMIT_STORAGE_KEY);
+        }
+    } catch {
+        // Ignore storage errors and keep session behavior only.
+    }
+}
+
+function normalizeVisibleDepthLimit(rawValue) {
+    const normalized = String(rawValue ?? "").trim();
+
+    if (!normalized) {
+        return null;
+    }
+
+    const parsed = Number.parseInt(normalized, 10);
+    return Number.isFinite(parsed) && parsed >= 1 ? parsed : null;
+}
+
+function updateVisibleDepthUi(visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons) {
+    const displayValue = typeof state.visibleDepthLimit === "number"
+        ? String(state.visibleDepthLimit)
+        : "";
+
+    if (visibleDepthInput) {
+        visibleDepthInput.value = displayValue;
+    }
+    if (toolbarVisibleDepthInput) {
+        toolbarVisibleDepthInput.value = displayValue;
+    }
+
+    if (visibleDepthStatus) {
+        visibleDepthStatus.textContent = typeof state.visibleDepthLimit === "number"
+            ? `Visar nivå 1-${state.visibleDepthLimit} från Central topic.`
+            : "Visar alla nivåer.";
+    }
+
+    if (visibleDepthBadge) {
+        visibleDepthBadge.textContent = typeof state.visibleDepthLimit === "number"
+            ? `Nivå ${state.visibleDepthLimit}`
+            : "Alla nivåer";
+    }
+
+    if (Array.isArray(visibleDepthQuickButtons)) {
+        visibleDepthQuickButtons.forEach((button) => {
+            const targetDepth = button.getAttribute("data-depth");
+            const isActive = targetDepth === "all"
+                ? state.visibleDepthLimit === null
+                : String(state.visibleDepthLimit) === targetDepth;
+            button.classList.toggle("active", isActive);
+        });
+    }
+}
+
+function applyVisibleDepthLimit(rawValue, visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons) {
+    state.visibleDepthLimit = normalizeVisibleDepthLimit(rawValue);
+    writeVisibleDepthLimitPreference(state.visibleDepthLimit);
+
+    updateVisibleDepthUi(visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);
+    render();
+}
+
 function setupClassicMenuInteractions() {
     const menuBar = document.querySelector('.menu-bar');
     const menuItems = Array.from(document.querySelectorAll('.menu-item'));
@@ -81,6 +159,11 @@ function setupClassicMenuInteractions() {
             const trigger = item.querySelector('.menu-trigger');
             if (trigger) trigger.setAttribute('aria-expanded', 'false');
         });
+
+        const activeElement = document.activeElement;
+        if (activeElement instanceof HTMLElement && menuBar.contains(activeElement)) {
+            activeElement.blur();
+        }
     };
 
     const openMenu = (itemToOpen) => {
@@ -165,6 +248,12 @@ export function setupEventListeners() {
         btnGoogleSaveClientId,
         googleClientIdInput,
         googleMapsList,
+        visibleDepthInput,
+        toolbarVisibleDepthInput,
+        visibleDepthClear,
+        visibleDepthStatus,
+        visibleDepthBadge,
+        visibleDepthQuickButtons,
         topicSearchInput,
         topicSearchPrev,
         topicSearchNext,
@@ -184,6 +273,8 @@ export function setupEventListeners() {
     } = getDomElements();
 
     setupClassicMenuInteractions();
+    state.visibleDepthLimit = readVisibleDepthLimitPreference();
+    updateVisibleDepthUi(visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);
 
     // Canvas zooming (Wheel)
     workspace.addEventListener("wheel", handleWheel, { passive: false });
@@ -347,6 +438,41 @@ export function setupEventListeners() {
             handleOpenGoogleMap(fileId);
         });
     }
+
+    if (visibleDepthInput) {
+        visibleDepthInput.addEventListener("input", () => {
+            applyVisibleDepthLimit(visibleDepthInput.value, visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);
+        });
+        visibleDepthInput.addEventListener("keydown", (e) => {
+            if (e.key !== "Escape") return;
+            e.stopPropagation();
+        });
+    }
+    if (toolbarVisibleDepthInput) {
+        toolbarVisibleDepthInput.addEventListener("input", () => {
+            applyVisibleDepthLimit(toolbarVisibleDepthInput.value, visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);
+        });
+        toolbarVisibleDepthInput.addEventListener("keydown", (e) => {
+            if (e.key !== "Escape") return;
+            e.stopPropagation();
+        });
+    }
+    if (visibleDepthClear) {
+        visibleDepthClear.addEventListener("click", () => {
+            applyVisibleDepthLimit("", visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);
+        });
+    }
+    if (Array.isArray(visibleDepthQuickButtons)) {
+        visibleDepthQuickButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const value = button.getAttribute("data-depth") === "all"
+                    ? ""
+                    : button.getAttribute("data-depth") || "";
+                applyVisibleDepthLimit(value, visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);
+            });
+        });
+    }
+
     fileImportInput.addEventListener("change", handleImportFile);
     fileImportMindMeisterInput.addEventListener("change", handleImportMindMeisterFile);
 
@@ -491,6 +617,7 @@ function handleWorkspacePointerDown(e) {
     if (
         e.target.closest(".node") ||
         e.target.closest(".floating-controls") ||
+        e.target.closest(".visible-depth-panel") ||
         e.target.closest(".maps-sidebar-toggle") ||
         (sidebar && sidebar.contains(e.target)) ||
         (mapsSidebar && mapsSidebar.contains(e.target)) ||

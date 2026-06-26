@@ -4,7 +4,7 @@
 
 import { state } from './state.js';
 import { saveHistory } from './history.js';
-import { generateId, getAbsoluteCoords } from './utils.js';
+import { generateId, getAbsoluteCoords, getNodeDepth } from './utils.js';
 
 const NEW_NODE_HORIZONTAL_OFFSET = 180;
 const NEW_SIBLING_VERTICAL_OFFSET = 110;
@@ -284,10 +284,15 @@ export function mirrorSubtreeHorizontally(nodeId) {
 }
 
 /**
- * Check if a node is hidden because one of its ancestors is collapsed.
+ * Check if a node is hidden because one of its ancestors is collapsed
+ * or because it exceeds the active visible depth limit.
  */
 export function isNodeHiddenByCollapsedAncestor(nodeId) {
     if (!state.nodes[nodeId]) return true;
+
+    if (typeof state.visibleDepthLimit === "number" && getNodeDepth(nodeId) > state.visibleDepthLimit) {
+        return true;
+    }
 
     let currentParentId = state.nodes[nodeId].parent;
     while (currentParentId) {

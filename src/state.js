@@ -53,7 +53,10 @@ export const state = {
     // --- Topic Search ---
     topicSearchQuery: "",
     topicSearchMatches: [],
-    topicSearchIndex: -1
+    topicSearchIndex: -1,
+
+    // --- View Filters ---
+    visibleDepthLimit: null
 };
 
 export const constants = {
@@ -94,4 +97,5 @@ export function resetState() {
     state.topicSearchQuery = "";
     state.topicSearchMatches = [];
     state.topicSearchIndex = -1;
+    state.visibleDepthLimit = null;
 }
