@@ -284,15 +284,10 @@ export function mirrorSubtreeHorizontally(nodeId) {
 }
 
 /**
- * Check if a node is hidden because one of its ancestors is collapsed
- * or because it exceeds the active visible depth limit.
+ * Check if a node is hidden because one of its ancestors is collapsed.
  */
-export function isNodeHiddenByCollapsedAncestor(nodeId) {
+function isNodeHiddenByCollapsedOnly(nodeId) {
     if (!state.nodes[nodeId]) return true;
-
-    if (typeof state.visibleDepthLimit === "number" && getNodeDepth(nodeId) > state.visibleDepthLimit) {
-        return true;
-    }
 
     let currentParentId = state.nodes[nodeId].parent;
     while (currentParentId) {
@@ -306,6 +301,54 @@ export function isNodeHiddenByCollapsedAncestor(nodeId) {
 }
 
 /**
+ * Check if a node is hidden specifically by the active visible depth limit.
+ */
+function isNodeHiddenByDepthLimit(nodeId) {
+    if (!state.nodes[nodeId]) return true;
+    if (typeof state.visibleDepthLimit !== "number") return false;
+
+    const nodeDepth = getNodeDepth(nodeId);
+    if (nodeDepth <= state.visibleDepthLimit) return false;
+
+    let currentId = nodeId;
+    while (state.nodes[currentId]?.parent) {
+        const parentId = state.nodes[currentId].parent;
+        const parentDepth = getNodeDepth(parentId);
+        if (parentDepth >= state.visibleDepthLimit && !state.nodes[parentId]?.depthFilterExpanded) {
+            return true;
+        }
+        currentId = parentId;
+    }
+
+    return false;
+}
+
+/**
+ * Check if a node is hidden because one of its ancestors is collapsed
+ * or because it exceeds the active visible depth limit.
+ */
+export function isNodeHiddenByCollapsedAncestor(nodeId) {
+    if (!state.nodes[nodeId]) return true;
+
+    if (isNodeHiddenByCollapsedOnly(nodeId)) {
+        return true;
+    }
+
+    return isNodeHiddenByDepthLimit(nodeId);
+}
+
+export function hasVisibleDirectChildren(nodeId) {
+    return getChildren(nodeId).some((childId) => !isNodeHiddenByCollapsedAncestor(childId));
+}
+
+export function hasDepthLimitedDirectChildren(nodeId) {
+    return getChildren(nodeId).some((childId) => {
+        if (isNodeHiddenByCollapsedOnly(childId)) return false;
+        return isNodeHiddenByDepthLimit(childId);
+    });
+}
+
+/**
  * Toggle collapsed/expanded state for a node's subtree.
  */
 export function toggleNodeCollapsed(nodeId) {
@@ -314,7 +357,17 @@ export function toggleNodeCollapsed(nodeId) {
     const hasChildren = getChildren(nodeId).length > 0;
     if (!hasChildren) return !!state.nodes[nodeId].collapsed;
 
-    state.nodes[nodeId].collapsed = !state.nodes[nodeId].collapsed;
+    const node = state.nodes[nodeId];
+    const visibleChildren = hasVisibleDirectChildren(nodeId);
+    const depthLimitedChildren = hasDepthLimitedDirectChildren(nodeId);
+
+    if (visibleChildren) {
+        node.collapsed = true;
+        node.depthFilterExpanded = false;
+    } else {
+        node.collapsed = false;
+        node.depthFilterExpanded = depthLimitedChildren;
+    }
 
     if (state.selectedNodeId && isNodeHiddenByCollapsedAncestor(state.selectedNodeId)) {
         state.selectedNodeId = nodeId;
@@ -322,5 +375,5 @@ export function toggleNodeCollapsed(nodeId) {
     }
 
     saveHistory();
-    return state.nodes[nodeId].collapsed;
+    return node.collapsed;
 }

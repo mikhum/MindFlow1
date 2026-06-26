@@ -104,6 +104,13 @@ function normalizeVisibleDepthLimit(rawValue) {
     return Number.isFinite(parsed) && parsed >= 1 ? parsed : null;
 }
 
+function resetDepthFilterExpandedState() {
+    Object.values(state.nodes).forEach((node) => {
+        if (!node) return;
+        delete node.depthFilterExpanded;
+    });
+}
+
 function updateVisibleDepthUi(visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons) {
     const displayValue = typeof state.visibleDepthLimit === "number"
         ? String(state.visibleDepthLimit)
@@ -141,6 +148,7 @@ function updateVisibleDepthUi(visibleDepthInput, toolbarVisibleDepthInput, visib
 
 function applyVisibleDepthLimit(rawValue, visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons) {
     state.visibleDepthLimit = normalizeVisibleDepthLimit(rawValue);
+    resetDepthFilterExpandedState();
     writeVisibleDepthLimitPreference(state.visibleDepthLimit);
 
     updateVisibleDepthUi(visibleDepthInput, toolbarVisibleDepthInput, visibleDepthStatus, visibleDepthBadge, visibleDepthQuickButtons);

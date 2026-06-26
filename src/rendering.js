@@ -6,7 +6,7 @@
 import { state } from './state.js';
 import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, getContrastingTextColor, getEdgePoint, getNodeDepth } from './utils.js';
-import { finishEditingNode, selectNode, startEditingNode, getChildren, isNodeHiddenByCollapsedAncestor, toggleNodeCollapsed } from './nodes.js';
+import { finishEditingNode, selectNode, startEditingNode, getChildren, hasDepthLimitedDirectChildren, hasVisibleDirectChildren, isNodeHiddenByCollapsedAncestor, toggleNodeCollapsed } from './nodes.js';
 import { selectRelationship, deleteRelationship, startLinkingMode, createRelationship, cancelLinkingMode } from './relationships.js';
 
 /**
@@ -113,9 +113,14 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
 
     const childCount = getChildren(nodeId).length;
     if (childCount > 0) {
-        const isCollapsed = !!node.collapsed;
-        const toggleLabel = isCollapsed ? "+" : "-";
-        const toggleTitle = isCollapsed ? "Show children" : "Hide children";
+        const isExpanded = hasVisibleDirectChildren(nodeId);
+        const hasMoreByDepthLimit = hasDepthLimitedDirectChildren(nodeId);
+        const toggleLabel = isExpanded ? "-" : "+";
+        const toggleTitle = isExpanded
+            ? "Hide children"
+            : hasMoreByDepthLimit
+                ? "Show next level"
+                : "Show children";
         content += `<button class="node-collapse-toggle" type="button" aria-label="${toggleTitle}" title="${toggleTitle}">${toggleLabel}</button>`;
     }
 

@@ -142,6 +142,11 @@ try {
   const afterDepthLimit = await page.locator('.node').count();
   assert.equal(afterDepthLimit, 3, 'expected visible depth 1 to hide grandchildren');
 
+  await page.locator('.node').nth(1).locator('.node-collapse-toggle').click({ force: true });
+  await page.waitForTimeout(100);
+  const afterBranchExpandPastLimit = await page.locator('.node').count();
+  assert.equal(afterBranchExpandPastLimit, 4, 'expected a collapsed branch to expand one step beyond the visible depth limit');
+
   await page.locator('#visible-depth-clear').click({ force: true });
   await page.waitForTimeout(100);
   const afterDepthReset = await page.locator('.node').count();
