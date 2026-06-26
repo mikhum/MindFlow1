@@ -114,25 +114,7 @@
                 <div class="menu-item">
                     <button class="menu-trigger" type="button">Mappar</button>
                     <div class="menu-dropdown" role="menu">
-                        <div class="cloud-auth-row">
-                            <button class="btn btn-outline" id="btn-google-signin" title="Sign in with Google">
-                                <i class="fa-brands fa-google"></i> Logga in Google
-                            </button>
-                            <button class="btn btn-outline" id="btn-google-signout" title="Sign out from Google">
-                                <i class="fa-solid fa-right-from-bracket"></i> Logga ut
-                            </button>
-                        </div>
-                        <button class="btn btn-outline" id="btn-google-refresh" title="Refresh Google Drive files">
-                            <i class="fa-solid fa-rotate"></i> Uppdatera Google-lista
-                        </button>
-                        <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
-                        <div class="saved-maps-list" id="google-maps-list">
-                            <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
-                        </div>
-                        <div class="menu-separator"></div>
-                        <div class="saved-maps-list" id="saved-maps-list">
-                            <div class="empty-state">No saved maps found in browser storage.</div>
-                        </div>
+                        <p class="field-hint">Fil-listorna finns nu i hogerspalten och ar alltid synliga.</p>
                     </div>
                 </div>
 
@@ -164,6 +146,39 @@
                 <i class="fa-solid fa-link"></i>
                 <span>Linking Mode: Click a target node to create relationship. Press <strong>Esc</strong> to cancel.</span>
             </div>
+
+            <button class="maps-sidebar-toggle" id="btn-toggle-maps-sidebar" type="button" aria-controls="maps-sidebar" aria-expanded="true" title="Kollapsa mapp-sidebar">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <!-- Persistent Maps Sidebar -->
+            <aside class="maps-sidebar" id="maps-sidebar" aria-label="Mappar">
+                <div class="maps-sidebar-section">
+                    <h3 class="maps-sidebar-title">Google Drive</h3>
+                    <div class="cloud-auth-row">
+                        <button class="btn btn-outline" id="btn-google-signin" title="Sign in with Google">
+                            <i class="fa-brands fa-google"></i> Logga in Google
+                        </button>
+                        <button class="btn btn-outline" id="btn-google-signout" title="Sign out from Google">
+                            <i class="fa-solid fa-right-from-bracket"></i> Logga ut
+                        </button>
+                    </div>
+                    <button class="btn btn-outline" id="btn-google-refresh" title="Refresh Google Drive files">
+                        <i class="fa-solid fa-rotate"></i> Uppdatera Google-lista
+                    </button>
+                    <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
+                    <div class="saved-maps-list" id="google-maps-list">
+                        <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
+                    </div>
+                </div>
+                <div class="menu-separator"></div>
+                <div class="maps-sidebar-section">
+                    <h3 class="maps-sidebar-title">Lokala filer</h3>
+                    <div class="saved-maps-list" id="saved-maps-list">
+                        <div class="empty-state">No saved maps found in browser storage.</div>
+                    </div>
+                </div>
+            </aside>
 
             <!-- Infinite Canvas -->
             <div class="canvas" id="canvas">

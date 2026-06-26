@@ -358,7 +358,7 @@ function ensureGoogleClientIdConfigured() {
     const entered = inputFromDomRef || inputFromDocument;
 
     if (!entered) {
-        alert("Fyll i Google Client ID i Mappar-menyn och klicka Spara.");
+        alert("Fyll i Google Client ID i Mappar-sidpanelen och klicka Spara.");
         return false;
     }
 

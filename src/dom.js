@@ -55,6 +55,8 @@ export function initDomElements() {
     domElements = {
         // Main containers
         workspace: document.getElementById("workspace"),
+        mapsSidebar: document.getElementById("maps-sidebar"),
+        btnToggleMapsSidebar: document.getElementById("btn-toggle-maps-sidebar"),
         canvas: document.getElementById("canvas"),
         nodesContainer: document.getElementById("nodes-container"),
         svgOverlay: document.getElementById("svg-overlay"),

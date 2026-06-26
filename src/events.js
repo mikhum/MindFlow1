@@ -43,6 +43,32 @@ import {
 } from './relationships.js';
 import { updateCanvasTransform } from './viewport.js';
 
+const MAPS_SIDEBAR_COLLAPSED_STORAGE_KEY = "mindflow_maps_sidebar_collapsed";
+
+function setMapsSidebarCollapsed(workspace, btnToggleMapsSidebar, collapsed) {
+    if (!workspace || !btnToggleMapsSidebar) return;
+
+    workspace.classList.toggle("maps-sidebar-collapsed", collapsed);
+    btnToggleMapsSidebar.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    btnToggleMapsSidebar.title = collapsed ? "Visa mapp-sidebar" : "Kollapsa mapp-sidebar";
+}
+
+function readMapsSidebarCollapsedPreference() {
+    try {
+        return localStorage.getItem(MAPS_SIDEBAR_COLLAPSED_STORAGE_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
+function writeMapsSidebarCollapsedPreference(collapsed) {
+    try {
+        localStorage.setItem(MAPS_SIDEBAR_COLLAPSED_STORAGE_KEY, collapsed ? "1" : "0");
+    } catch {
+        // Ignore storage errors and keep session behavior only.
+    }
+}
+
 function setupClassicMenuInteractions() {
     const menuBar = document.querySelector('.menu-bar');
     const menuItems = Array.from(document.querySelectorAll('.menu-item'));
@@ -110,6 +136,8 @@ function setupClassicMenuInteractions() {
 export function setupEventListeners() {
     const {
         workspace,
+        mapsSidebar,
+        btnToggleMapsSidebar,
         canvas,
         btnHideSidebar,
         btnShowSidebar,
@@ -178,6 +206,16 @@ export function setupEventListeners() {
         btnShowSidebar.addEventListener("click", () => {
             sidebar.classList.remove("hidden");
             btnShowSidebar.style.display = "none";
+        });
+    }
+
+    if (btnToggleMapsSidebar && workspace && mapsSidebar) {
+        setMapsSidebarCollapsed(workspace, btnToggleMapsSidebar, readMapsSidebarCollapsedPreference());
+
+        btnToggleMapsSidebar.addEventListener("click", () => {
+            const isCollapsed = workspace.classList.toggle("maps-sidebar-collapsed");
+            setMapsSidebarCollapsed(workspace, btnToggleMapsSidebar, isCollapsed);
+            writeMapsSidebarCollapsedPreference(isCollapsed);
         });
     }
 
@@ -449,16 +487,19 @@ function handleWorkspacePointerDown(e) {
     }
 
     // Avoid panning if click is on a node, button, or relationship overlay
-    const { sidebar } = getDomElements();
+    const { sidebar, mapsSidebar } = getDomElements();
     if (
         e.target.closest(".node") ||
         e.target.closest(".floating-controls") ||
+        e.target.closest(".maps-sidebar-toggle") ||
         (sidebar && sidebar.contains(e.target)) ||
+        (mapsSidebar && mapsSidebar.contains(e.target)) ||
         e.target.closest(".relationship-delete-btn")
     ) {
         return;
     }
 
+    e.preventDefault();
     state.isPanning = true;
     const { canvas } = getDomElements();
     canvas.classList.add("grabbing");
