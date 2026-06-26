@@ -108,8 +108,27 @@ try {
   const savedMaps = await page.evaluate(() => JSON.parse(localStorage.getItem('mindflow_saved_maps') || '{}'));
   assert(Object.keys(savedMaps).length >= 1, 'expected Save Current to populate browser saved maps');
   const latestMap = Object.values(savedMaps).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+  assert(savedMaps['Central Topic'], 'expected saved map name to follow the root topic text');
   assert.equal(latestMap?.relationships?.[0]?.color, '#10b981', 'expected relationship color to persist in saved maps');
   assert.equal(latestMap?.relationships?.[0]?.comment, 'Relationship note', 'expected relationship comment to persist in saved maps');
+
+  await page.locator('.node').first().dblclick({ force: true });
+  await page.waitForTimeout(100);
+  await page.locator('.node-text-edit').press('Control+A');
+  await page.locator('.node-text-edit').type('Renamed Root');
+  await page.locator('#canvas').click({ position: { x: 40, y: 40 }, force: true });
+  await page.waitForTimeout(100);
+
+  await page.getByRole('button', { name: 'Arkiv' }).click();
+  if (!await page.locator('#btn-save-map').isVisible()) {
+    await page.getByRole('button', { name: 'Arkiv' }).click();
+  }
+  await page.waitForTimeout(100);
+  await page.locator('#btn-save-map').click({ force: true });
+  await page.waitForTimeout(100);
+  const renamedSavedMaps = await page.evaluate(() => JSON.parse(localStorage.getItem('mindflow_saved_maps') || '{}'));
+  assert(renamedSavedMaps['Renamed Root'], 'expected saved map name to update when the root topic changes');
+  assert(!renamedSavedMaps['Central Topic'], 'expected the old saved map name to be removed after renaming the root topic');
 
   await page.locator('.node').nth(1).click({ force: true });
   await page.locator('#ctrl-add-child').click({ force: true });

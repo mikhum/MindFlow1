@@ -123,14 +123,19 @@ function ensureRootColor() {
  */
 export function saveAutosave() {
     localStorage.setItem("mindflow_autosave", JSON.stringify({
-        name: state.currentMapName,
+        name: getMapDisplayName(),
         nodes: state.nodes,
         relationships: state.relationships
     }));
 }
 
+function getMapDisplayName() {
+    const rootText = String(state.nodes?.root?.text || "").trim();
+    return rootText || state.currentMapName || "My Mindmap";
+}
+
 function buildMapData() {
-    const suggestedName = state.currentMapName || (state.nodes.root && state.nodes.root.text) || "My Mindmap";
+    const suggestedName = getMapDisplayName();
     return {
         format: "mindflow",
         version: "1.0",
@@ -157,8 +162,10 @@ async function ensureFileHandlePermission(handle) {
  * Handle saving map to file
  */
 export async function handleSaveMap() {
+    const previousMapName = state.currentMapName;
     const mapData = buildMapData();
-    saveMapToBrowserStorage(mapData.name, mapData);
+    state.currentMapName = mapData.name;
+    saveMapToBrowserStorage(mapData.name, mapData, previousMapName);
     saveAutosave();
     loadMapList();
 
@@ -169,6 +176,13 @@ export async function handleSaveMap() {
     }
 
     try {
+        const desiredFileName = getSuggestedMapFilename(mapData.name);
+        if (state.saveFileHandle.name && state.saveFileHandle.name !== desiredFileName) {
+            clearCurrentFileBinding();
+            downloadMapFile(mapData);
+            return;
+        }
+
         const hasPermission = await ensureFileHandlePermission(state.saveFileHandle);
         if (!hasPermission) {
             downloadMapFile(mapData);
@@ -179,11 +193,11 @@ export async function handleSaveMap() {
         await writable.write(JSON.stringify(mapData, null, 2));
         await writable.close();
 
-        state.currentMapName = state.saveFileHandle.name || mapData.name;
-        saveMapToBrowserStorage(state.currentMapName, {
+        state.currentMapName = mapData.name;
+        saveMapToBrowserStorage(mapData.name, {
             ...mapData,
-            name: state.currentMapName
-        });
+            name: mapData.name
+        }, previousMapName);
         saveAutosave();
         loadMapList();
     } catch (err) {
@@ -199,9 +213,11 @@ export async function handleSaveMap() {
 }
 
 export function handleSaveAsMap() {
+    const previousMapName = state.currentMapName;
     const mapData = buildMapData();
 
-    saveMapToBrowserStorage(mapData.name, mapData);
+    state.currentMapName = mapData.name;
+    saveMapToBrowserStorage(mapData.name, mapData, previousMapName);
     saveAutosave();
     loadMapList();
     downloadMapFile(mapData);
@@ -238,8 +254,11 @@ function readFileAsText(file) {
     });
 }
 
-function saveMapToBrowserStorage(name, mapData) {
+function saveMapToBrowserStorage(name, mapData, previousName = null) {
     const savedMaps = JSON.parse(localStorage.getItem("mindflow_saved_maps") || "{}");
+    if (previousName && previousName !== name) {
+        delete savedMaps[previousName];
+    }
     savedMaps[name] = {
         name,
         nodes: mapData.nodes,
@@ -655,7 +674,6 @@ export async function handleOpenMindflow() {
         const fileText = await readFileAsText(file);
         loadMindflowFromText(fileText, file.name);
         state.saveFileHandle = fileHandle;
-        state.currentMapName = fileHandle.name || state.currentMapName;
         saveAutosave();
     } catch (err) {
         if (err.name === "AbortError") return;
@@ -721,7 +739,7 @@ export function importMapData(imported, filename, skipLayout = false) {
         layoutImportedMap();
     }
     
-    state.currentMapName = imported.name || filename.replace(/\.[^/.]+$/, "");
+    state.currentMapName = getMapDisplayName();
 
     state.selectedNodeId = "root";
     state.selectedRelationshipId = null;
@@ -746,7 +764,7 @@ export function handleExportDoc() {
     const blob = new Blob([html], { type: "application/msword" });
     const blobUrl = URL.createObjectURL(blob);
     
-    const filename = (state.currentMapName || state.nodes.root.text || "mindmap").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".doc";
+    const filename = getSuggestedMapFilename(getMapDisplayName()).replace(/\.mindflow$/i, ".doc");
     const link = document.createElement("a");
     link.href = blobUrl;
     link.download = filename;
@@ -768,7 +786,7 @@ export function handleExportPdf() {
 
 async function exportMindmapPdf() {
     const { html2canvas, JsPdfCtor } = await getPdfLibraries();
-    const mapTitle = state.currentMapName || state.nodes.root?.text || "mindmap";
+    const mapTitle = getMapDisplayName();
     const { nodesContainer } = getDomElements();
     const nodeElements = Array.from(nodesContainer?.querySelectorAll(".node") || []);
     const orientationSetting = getDomElements().pdfOrientationSelect?.value === "portrait" ? "portrait" : "landscape";
@@ -1006,7 +1024,7 @@ function drawLineLayer(lineCanvas, nodeElements, viewX, viewY) {
  * Generate HTML for Word export
  */
 function generateWordHtml() {
-    const mapTitle = state.currentMapName || state.nodes.root?.text || "mindmap";
+    const mapTitle = getMapDisplayName();
     const docParts = [];
     docParts.push("<!DOCTYPE html>");
     docParts.push("<html>");
