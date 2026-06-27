@@ -9,7 +9,7 @@ import { centerOnNode } from './navigation.js';
 import { layoutImportedMap, parseFreemindXml } from './layout.js';
 import { saveHistory } from './history.js';
 import { getDomElements } from './dom.js';
-import { getEdgePoint } from './utils.js';
+import { getAbsoluteCoords, getEdgePoint } from './utils.js';
 import {
     getGoogleClientId,
     setGoogleClientId,
@@ -1042,6 +1042,33 @@ function generateWordHtml() {
     return docParts.join("");
 }
 
+function getClockwiseAngleFromTop(originCoords, targetCoords) {
+    const dx = targetCoords.x - originCoords.x;
+    const dy = targetCoords.y - originCoords.y;
+    let angle = Math.atan2(dx, -dy);
+    if (angle < 0) {
+        angle += Math.PI * 2;
+    }
+    return angle;
+}
+
+function compareChildrenClockwiseFromTop(parentNodeId, leftChild, rightChild) {
+    const parentCoords = getAbsoluteCoords(parentNodeId, true);
+    const leftCoords = getAbsoluteCoords(leftChild.id, true);
+    const rightCoords = getAbsoluteCoords(rightChild.id, true);
+
+    const leftAngle = getClockwiseAngleFromTop(parentCoords, leftCoords);
+    const rightAngle = getClockwiseAngleFromTop(parentCoords, rightCoords);
+
+    if (leftAngle !== rightAngle) {
+        return leftAngle - rightAngle;
+    }
+
+    const leftDistance = Math.hypot(leftCoords.x - parentCoords.x, leftCoords.y - parentCoords.y);
+    const rightDistance = Math.hypot(rightCoords.x - parentCoords.x, rightCoords.y - parentCoords.y);
+    return leftDistance - rightDistance;
+}
+
 /**
  * Recursively append node hierarchy to Word export
  */
@@ -1051,7 +1078,7 @@ function appendNodeHierarchyToDoc(nodeId, level, numberingPath, docParts) {
 
     Object.values(state.nodes)
         .filter((child) => child.parent === nodeId)
-        .sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0))
+        .sort((a, b) => compareChildrenClockwiseFromTop(nodeId, a, b))
         .forEach((child, index) => {
             const childNumberingPath = [...numberingPath, index + 1];
             const headingLevel = Math.min(level, 6);
