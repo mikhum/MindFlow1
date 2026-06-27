@@ -6,28 +6,23 @@
 import { state } from './state.js';
 import { generateId } from './utils.js';
 import { getAbsoluteCoords } from './utils.js';
+import { isNodeHiddenByCollapsedAncestor } from './nodes.js';
 
 /**
  * Arrange map in a readable left/right tree layout.
  * Root children are placed on left/right sides, and descendants continue on the same side.
  */
 export function layoutImportedMap() {
-    const childrenMap = {};
+    const visibleChildrenMap = {};
     Object.keys(state.nodes).forEach(id => {
+        if (id !== "root" && isNodeHiddenByCollapsedAncestor(id)) return;
+
         const parentId = state.nodes[id].parent;
         if (!parentId) return;
-        if (!childrenMap[parentId]) childrenMap[parentId] = [];
-        childrenMap[parentId].push(id);
+        if (parentId !== "root" && isNodeHiddenByCollapsedAncestor(parentId)) return;
+        if (!visibleChildrenMap[parentId]) visibleChildrenMap[parentId] = [];
+        visibleChildrenMap[parentId].push(id);
     });
-
-    function getSubtreeCount(nodeId) {
-        const children = childrenMap[nodeId] || [];
-        let count = 1;
-        children.forEach(childId => {
-            count += getSubtreeCount(childId);
-        });
-        return count;
-    }
 
     function sortByCurrentY(ids) {
         return [...ids].sort((a, b) => {
@@ -86,7 +81,7 @@ export function layoutImportedMap() {
     absPositions.root = { x: 0, y: 0 };
 
     // Get depth-1 children
-    const rootChildren = childrenMap.root || [];
+    const rootChildren = visibleChildrenMap.root || [];
     if (rootChildren.length === 0) {
         // No children to arrange
         state.nodes.root.x = 0;
@@ -108,7 +103,7 @@ export function layoutImportedMap() {
             sum += getAbsoluteCoords(id, true).x;
             count += 1;
 
-            const children = childrenMap[id] || [];
+            const children = visibleChildrenMap[id] || [];
             children.forEach((childId) => walk(childId));
         }
 
@@ -153,7 +148,7 @@ export function layoutImportedMap() {
     });
 
     function getSubtreeHeight(nodeId) {
-        const children = childrenMap[nodeId] || [];
+        const children = visibleChildrenMap[nodeId] || [];
         const ownHeight = Math.max(spacingY, getNodeVisualHeight(nodeId) + 20);
         if (children.length === 0) return ownHeight;
 
@@ -168,7 +163,7 @@ export function layoutImportedMap() {
     }
 
     function layoutSubtree(nodeId, parentAbsX, parentAbsY, side) {
-        const children = sortByCurrentY(childrenMap[nodeId] || []);
+        const children = sortByCurrentY(visibleChildrenMap[nodeId] || []);
         if (children.length === 0) return;
 
         const totalHeight = children.reduce((sum, childId) => {
@@ -221,6 +216,9 @@ export function layoutImportedMap() {
         if (id === "root") {
             node.x = 0;
             node.y = 0;
+            return;
+        }
+        if (isNodeHiddenByCollapsedAncestor(id)) {
             return;
         }
         const abs = absPositions[id];

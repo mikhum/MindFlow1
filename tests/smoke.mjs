@@ -142,12 +142,17 @@ try {
   const afterDepthLimit = await page.locator('.node').count();
   assert.equal(afterDepthLimit, 3, 'expected visible depth 1 to hide grandchildren');
 
-  await page.locator('.node').nth(1).locator('.node-collapse-toggle').click({ force: true });
+  await page.getByRole('button', { name: 'Arkiv' }).click();
+  if (!await page.locator('#btn-arrange-map').isVisible()) {
+    await page.getByRole('button', { name: 'Arkiv' }).click();
+  }
   await page.waitForTimeout(100);
-  const afterBranchExpandPastLimit = await page.locator('.node').count();
-  assert.equal(afterBranchExpandPastLimit, 4, 'expected a collapsed branch to expand one step beyond the visible depth limit');
+  await page.locator('#btn-arrange-map').click({ force: true });
+  await page.waitForTimeout(100);
+  const afterArrangeCollapsedView = await page.locator('.node').count();
+  assert.equal(afterArrangeCollapsedView, 3, 'expected Arrange Map to keep the collapsed view unchanged');
 
-  await page.locator('#visible-depth-clear').click({ force: true });
+  await page.locator('#toolbar-visible-depth-buttons .visible-depth-quick-btn[data-depth="all"]').click({ force: true });
   await page.waitForTimeout(100);
   const afterDepthReset = await page.locator('.node').count();
   assert.equal(afterDepthReset, 4, 'expected clearing the visible depth limit to show all nodes again');
