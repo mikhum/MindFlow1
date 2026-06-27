@@ -1035,7 +1035,7 @@ function generateWordHtml() {
         docParts.push(`<p style="font-size: 1.6em; font-weight: 700; margin: 0 0 0.75em 0;">${escapeHtml(state.nodes.root.text)}</p>`);
     }
 
-    appendNodeHierarchyToDoc("root", 1, docParts);
+    appendNodeHierarchyToDoc("root", 1, [], docParts);
     
     docParts.push("</body>");
     docParts.push("</html>");
@@ -1045,22 +1045,24 @@ function generateWordHtml() {
 /**
  * Recursively append node hierarchy to Word export
  */
-function appendNodeHierarchyToDoc(nodeId, level, docParts) {
+function appendNodeHierarchyToDoc(nodeId, level, numberingPath, docParts) {
     const node = state.nodes[nodeId];
     if (!node) return;
 
     Object.values(state.nodes)
         .filter((child) => child.parent === nodeId)
         .sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0))
-        .forEach((child) => {
+        .forEach((child, index) => {
+            const childNumberingPath = [...numberingPath, index + 1];
             const headingLevel = Math.min(level, 6);
-            docParts.push(`<h${headingLevel}>${escapeHtml(child.text)}</h${headingLevel}>`);
+            const numberingPrefix = `${childNumberingPath.join(".")} `;
+            docParts.push(`<h${headingLevel}>${escapeHtml(numberingPrefix + child.text)}</h${headingLevel}>`);
 
             if (child.comment) {
                 docParts.push(`<p><em>${escapeHtml(child.comment)}</em></p>`);
             }
 
-            appendNodeHierarchyToDoc(child.id, level + 1, docParts);
+            appendNodeHierarchyToDoc(child.id, level + 1, childNumberingPath, docParts);
         });
 }
 
