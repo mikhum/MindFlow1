@@ -4,11 +4,13 @@
 // Manages action history for undo and redo functionality.
 
 import { state, constants } from './state.js';
+import { scheduleAutosave } from './autosave.js';
 
 /**
  * Save current state to undo stack
  */
-export function saveHistory() {
+export function saveHistory(options = {}) {
+    const { triggerAutosave = true } = options;
     const snapshot = {
         nodes: JSON.parse(JSON.stringify(state.nodes)),
         relationships: JSON.parse(JSON.stringify(state.relationships))
@@ -23,6 +25,10 @@ export function saveHistory() {
 
     // Clear redo stack when new action is performed
     state.redoStack = [];
+
+    if (triggerAutosave) {
+        scheduleAutosave();
+    }
 }
 
 /**
@@ -48,6 +54,7 @@ export function undo() {
         state.selectedNodeId = "root";
     }
     state.selectedRelationshipId = null;
+    scheduleAutosave();
 }
 
 /**
@@ -73,4 +80,5 @@ export function redo() {
         state.selectedNodeId = "root";
     }
     state.selectedRelationshipId = null;
+    scheduleAutosave();
 }

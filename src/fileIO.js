@@ -10,6 +10,7 @@ import { layoutImportedMap, parseFreemindXml } from './layout.js';
 import { saveHistory } from './history.js';
 import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, getEdgePoint } from './utils.js';
+import { flushAutosaveNow, markAutosaveClean } from './autosave.js';
 import {
     getGoogleClientId,
     setGoogleClientId,
@@ -360,6 +361,7 @@ export async function handleGoogleDriveSignIn() {
 
         await signInToGoogleDrive();
         await refreshGoogleMapList();
+        await flushAutosaveNow();
     } catch (err) {
         console.error("Google sign-in failed:", err);
         alert(`Google sign-in failed: ${err.message}`);
@@ -410,6 +412,7 @@ export async function handleSaveToGoogleDrive() {
         const mapData = buildMapData();
         const fileName = getSuggestedMapFilename(mapData.name);
         await saveJsonToGoogleDrive(fileName, mapData);
+        markAutosaveClean();
 
         await refreshGoogleMapList();
         alert(`Saved map to Google Drive as ${fileName}.`);
@@ -504,7 +507,7 @@ export function loadMap(name) {
 
         state.undoStack = [];
         state.redoStack = [];
-        saveHistory();
+        saveHistory({ triggerAutosave: false });
         
         render();
         centerOnNode("root");
@@ -553,7 +556,7 @@ export function handleNewMap() {
 
     state.undoStack = [];
     state.redoStack = [];
-    saveHistory();
+    saveHistory({ triggerAutosave: false });
     
     render();
     centerOnNode("root");
@@ -655,7 +658,7 @@ export function importMapData(imported, filename, skipLayout = false) {
 
     state.undoStack = [];
     state.redoStack = [];
-    saveHistory();
+    saveHistory({ triggerAutosave: false });
 
     render();
     centerOnNode("root");

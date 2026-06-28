@@ -6,6 +6,7 @@
 import { state, resetState } from './state.js';
 import { initDomElements, getDomElements } from './dom.js';
 import { setupEventListeners } from './events.js';
+import { initAutosaveLifecycle } from './autosave.js';
 import { render, renderConnectors, updateNodeStyleControls } from './rendering.js';
 import { loadMapList } from './fileIO.js';
 import { centerOnNode } from './navigation.js';
@@ -21,6 +22,7 @@ async function init() {
 
     // Setup event listeners
     setupEventListeners();
+    initAutosaveLifecycle();
 
     // Refresh available cloud maps
     loadMapList();
@@ -31,7 +33,7 @@ async function init() {
     }
 
     // Save initial state to history
-    saveHistory();
+    saveHistory({ triggerAutosave: false });
 
     // Render the mindmap
     render();
