@@ -792,6 +792,10 @@ function checkPotentialParent(draggedId, absX, absY) {
  */
 function finishDraggingNode(e) {
     const draggedNodeId = state.draggingNodeId;
+    const draggedNode = state.nodes[draggedNodeId];
+    const originalParentId = draggedNode?.parent || null;
+    const originalRelativeX = draggedNode?.x || 0;
+    const originalRelativeY = draggedNode?.y || 0;
     const rootX = getAbsoluteCoords("root", true).x;
     const dragStartSide = Math.sign(state.dragStartNodePos.x - rootX);
 
@@ -816,7 +820,7 @@ function finishDraggingNode(e) {
 
     // If a valid parent target was found, reparent.
     if (dropParentId) {
-        reparentNode(draggedNodeId, dropParentId, droppedAbsPos);
+        reparentNode(draggedNodeId, dropParentId, droppedAbsPos, { saveToHistory: false });
     } else {
         // Otherwise, update position
         const parentCoords = state.nodes[draggedNodeId].parent
@@ -831,6 +835,13 @@ function finishDraggingNode(e) {
     const dragEndSide = Math.sign(getAbsoluteCoords(draggedNodeId, true).x - rootX);
     if (dragStartSide !== 0 && dragEndSide !== 0 && dragStartSide !== dragEndSide) {
         mirrorSubtreeHorizontally(draggedNodeId);
+    }
+
+    const finalNode = state.nodes[draggedNodeId];
+    const didParentChange = (finalNode?.parent || null) !== originalParentId;
+    const didPositionChange = (finalNode?.x || 0) !== originalRelativeX || (finalNode?.y || 0) !== originalRelativeY;
+    if (didParentChange || didPositionChange) {
+        saveHistory();
     }
 
     state.draggingNodeId = null;

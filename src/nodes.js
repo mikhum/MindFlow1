@@ -205,7 +205,9 @@ export function setNodeTextAlign(nodeId, align) {
 /**
  * Move a node to a new parent (reparenting)
  */
-export function reparentNode(nodeId, newParentId, newAbsolutePos = null) {
+export function reparentNode(nodeId, newParentId, newAbsolutePos = null, options = {}) {
+    const { saveToHistory = true } = options;
+
     if (!state.nodes[nodeId] || !state.nodes[newParentId]) return;
     
     // Prevent circular dependencies
@@ -237,7 +239,9 @@ export function reparentNode(nodeId, newParentId, newAbsolutePos = null) {
     state.nodes[nodeId].x = sideOffset;
     state.nodes[nodeId].y = proposedY;
 
-    saveHistory();
+    if (saveToHistory) {
+        saveHistory();
+    }
     return true;
 }
 
