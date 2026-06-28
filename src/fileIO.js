@@ -24,6 +24,7 @@ import {
 } from './googleDrive.js';
 
 const DEFAULT_ROOT_COLOR = "#0ea5e9";
+const LOCAL_SAVE_DISABLED_MESSAGE = "Local file saving is disabled. Use Google Drive instead.";
 let pdfLibrariesPromise = null;
 let googleMapsCache = [];
 let showGoogleClientConfig = false;
@@ -122,11 +123,7 @@ function ensureRootColor() {
  * Save current state to LocalStorage autosave
  */
 export function saveAutosave() {
-    localStorage.setItem("mindflow_autosave", JSON.stringify({
-        name: getMapDisplayName(),
-        nodes: state.nodes,
-        relationships: state.relationships
-    }));
+    // Local persistence is disabled.
 }
 
 function getMapDisplayName() {
@@ -162,64 +159,15 @@ async function ensureFileHandlePermission(handle) {
  * Handle saving map to file
  */
 export async function handleSaveMap() {
-    const previousMapName = state.currentMapName;
-    const mapData = buildMapData();
-    state.currentMapName = mapData.name;
-    saveMapToBrowserStorage(mapData.name, mapData, previousMapName);
-    saveAutosave();
-    loadMapList();
-
-    if (!state.saveFileHandle) {
-        // No bound file handle: fall back to normal file download behavior.
-        downloadMapFile(mapData);
-        return;
-    }
-
-    try {
-        const desiredFileName = getSuggestedMapFilename(mapData.name);
-        if (state.saveFileHandle.name && state.saveFileHandle.name !== desiredFileName) {
-            clearCurrentFileBinding();
-            downloadMapFile(mapData);
-            return;
-        }
-
-        const hasPermission = await ensureFileHandlePermission(state.saveFileHandle);
-        if (!hasPermission) {
-            downloadMapFile(mapData);
-            return;
-        }
-
-        const writable = await state.saveFileHandle.createWritable();
-        await writable.write(JSON.stringify(mapData, null, 2));
-        await writable.close();
-
-        state.currentMapName = mapData.name;
-        saveMapToBrowserStorage(mapData.name, {
-            ...mapData,
-            name: mapData.name
-        }, previousMapName);
-        saveAutosave();
-        loadMapList();
-    } catch (err) {
-        console.error("Saving map failed:", err);
-        if (isFileSystemAccessRestrictedError(err)) {
-            clearCurrentFileBinding();
-            downloadMapFile(mapData);
-            return;
-        }
-
-        alert("Could not save to the opened file. Use Save As.");
-    }
+    alert(LOCAL_SAVE_DISABLED_MESSAGE);
 }
 
 export function handleSaveAsMap() {
-    const previousMapName = state.currentMapName;
-    const mapData = buildMapData();
+    alert(LOCAL_SAVE_DISABLED_MESSAGE);
+}
 
-    state.currentMapName = mapData.name;
-    saveMapToBrowserStorage(mapData.name, mapData, previousMapName);
-    saveAutosave();
-    loadMapList();
+export function handleExportJson() {
+    const mapData = buildMapData();
     downloadMapFile(mapData);
 }
 
@@ -590,46 +538,8 @@ export function deleteSavedMap(name, event) {
  * Load list of saved maps into sidebar
  */
 export function loadMapList() {
-    const { savedMapsList } = getDomElements();
-    if (!savedMapsList) return;
-
-    // Refresh cloud list in the background without blocking local list rendering.
+    // Local browser storage is disabled; keep this as the cloud list refresh hook.
     void refreshGoogleMapList();
-
-    savedMapsList.innerHTML = "";
-
-    const savedMaps = JSON.parse(localStorage.getItem("mindflow_saved_maps") || "{}");
-    const names = Object.keys(savedMaps).sort((a, b) => (savedMaps[b].updatedAt || 0) - (savedMaps[a].updatedAt || 0));
-
-    if (names.length === 0) {
-        savedMapsList.innerHTML = '<div class="empty-state">No saved maps found in browser storage.</div>';
-        return;
-    }
-
-    names.forEach(name => {
-        const item = document.createElement("div");
-        item.className = "saved-map-item";
-        item.addEventListener("click", () => loadMap(name));
-        
-        const label = document.createElement("span");
-        label.className = "map-name";
-        label.textContent = name;
-        label.title = name;
-        
-        const actions = document.createElement("div");
-        actions.className = "map-actions";
-        
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "map-action-btn delete";
-        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-        deleteBtn.title = "Delete Saved Map";
-        deleteBtn.addEventListener("click", (e) => deleteSavedMap(name, e));
-        
-        actions.appendChild(deleteBtn);
-        item.appendChild(label);
-        item.appendChild(actions);
-        savedMapsList.appendChild(item);
-    });
 }
 
 /**
@@ -673,8 +583,6 @@ export async function handleOpenMindflow() {
         const file = await fileHandle.getFile();
         const fileText = await readFileAsText(file);
         loadMindflowFromText(fileText, file.name);
-        state.saveFileHandle = fileHandle;
-        saveAutosave();
     } catch (err) {
         if (err.name === "AbortError") return;
         if (isFileSystemAccessRestrictedError(err)) {

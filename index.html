@@ -27,12 +27,6 @@
                         <button class="btn btn-primary" id="btn-new-map">
                             <i class="fa-solid fa-plus"></i> Ny mindmap
                         </button>
-                        <button class="btn btn-secondary" id="btn-save-map">
-                            <i class="fa-solid fa-floppy-disk"></i> Spara
-                        </button>
-                        <button class="btn btn-outline" id="btn-save-as-map">
-                            <i class="fa-regular fa-floppy-disk"></i> Spara som
-                        </button>
                         <button class="btn btn-outline" id="btn-save-google-map" title="Save current map to Google Drive app storage">
                             <i class="fa-brands fa-google-drive"></i> Spara till Google Drive
                         </button>
@@ -47,6 +41,9 @@
                             <i class="fa-solid fa-file-import"></i> Import Freemind
                         </button>
                         <div class="button-group-row">
+                            <button class="btn btn-outline" id="btn-export-json" title="Export as MindFlow JSON file">
+                                <i class="fa-solid fa-file-code"></i> Export JSON
+                            </button>
                             <button class="btn btn-outline" id="btn-export-doc" title="Export as Word document">
                                 <i class="fa-solid fa-file-word"></i> Export Word
                             </button>
@@ -201,13 +198,6 @@
                     <p class="field-hint" id="google-auth-status">Google: inte inloggad.</p>
                     <div class="saved-maps-list" id="google-maps-list">
                         <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
-                    </div>
-                </div>
-                <div class="menu-separator"></div>
-                <div class="maps-sidebar-section">
-                    <h3 class="maps-sidebar-title">Lokala filer</h3>
-                    <div class="saved-maps-list" id="saved-maps-list">
-                        <div class="empty-state">No saved maps found in browser storage.</div>
                     </div>
                 </div>
             </aside>

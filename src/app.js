@@ -7,7 +7,7 @@ import { state, resetState } from './state.js';
 import { initDomElements, getDomElements } from './dom.js';
 import { setupEventListeners } from './events.js';
 import { render, renderConnectors, updateNodeStyleControls } from './rendering.js';
-import { loadMapList, saveAutosave, importMapData } from './fileIO.js';
+import { loadMapList } from './fileIO.js';
 import { centerOnNode } from './navigation.js';
 import { updateCanvasTransform } from './viewport.js';
 import { saveHistory } from './history.js';
@@ -22,23 +22,8 @@ async function init() {
     // Setup event listeners
     setupEventListeners();
 
-    // Load map list from LocalStorage
+    // Refresh available cloud maps
     loadMapList();
-
-    // Check if there was a map saved as "autosave"
-    const autosave = localStorage.getItem("mindflow_autosave");
-    if (autosave) {
-        try {
-            const data = JSON.parse(autosave);
-            if (data && data.nodes && data.nodes.root) {
-                state.nodes = data.nodes;
-                state.relationships = data.relationships || [];
-                state.currentMapName = data.name || "";
-            }
-        } catch (e) {
-            console.error("Failed to load autosave map:", e);
-        }
-    }
 
     // Ensure we have a valid root node
     if (!state.nodes || !state.nodes.root) {
@@ -57,12 +42,6 @@ async function init() {
     setTimeout(() => {
         renderConnectors();
     }, 150);
-
-    // Auto-save periodically
-    setInterval(() => {
-        saveAutosave();
-    }, 5000);
-
     console.log("MindFlow app initialized successfully!");
 }
 

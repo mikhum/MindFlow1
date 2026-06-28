@@ -9,8 +9,6 @@ import { getAbsoluteCoords, isDescendantOf } from './utils.js';
 import { render, renderConnectors, updateNodeStyleControls, showHelp, handleNodePointerDown } from './rendering.js';
 import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, setNodeTextAlign, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
 import {
-    handleSaveMap,
-    handleSaveAsMap,
     handleSaveToGoogleDrive,
     handleGoogleDriveSignIn,
     handleGoogleDriveSignOut,
@@ -24,9 +22,10 @@ import {
     handleImportFile,
     handleImportMindMeisterFile,
     loadMapList,
-    saveAutosave
+    handleExportJson,
+    handleExportDoc,
+    handleExportPdf
 } from './fileIO.js';
-import { handleExportDoc, handleExportPdf } from './fileIO.js';
 import { zoom, resetViewport, handleWheel } from './viewport.js';
 import { navigateGeometrically, centerOnNode, scrollToNode } from './navigation.js';
 import { undo, redo, saveHistory } from './history.js';
@@ -241,10 +240,9 @@ export function setupEventListeners() {
         ctrlHelp,
         menuOpenHelp,
         btnNewMap,
-        btnSaveMap,
-        btnSaveAsMap,
         btnSaveGoogleMap,
         btnArrangeMap,
+        btnExportJson,
         btnExportDoc,
         btnExportPdf,
         btnOpenMindflow,
@@ -354,10 +352,6 @@ export function setupEventListeners() {
         handleNewMap();
         render();
     });
-    btnSaveMap.addEventListener("click", handleSaveMap);
-    if (btnSaveAsMap) {
-        btnSaveAsMap.addEventListener("click", handleSaveAsMap);
-    }
     if (btnSaveGoogleMap) {
         btnSaveGoogleMap.addEventListener("click", () => {
             handleSaveToGoogleDrive();
@@ -367,13 +361,15 @@ export function setupEventListeners() {
         btnArrangeMap.addEventListener("click", () => {
             layoutImportedMap();
             saveHistory();
-            saveAutosave();
             render();
             centerOnNode("root");
         });
     }
 
     // File Import/Export
+    if (btnExportJson) {
+        btnExportJson.addEventListener("click", handleExportJson);
+    }
     if (btnExportDoc) {
         btnExportDoc.addEventListener("click", handleExportDoc);
     }

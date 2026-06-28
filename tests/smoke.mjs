@@ -98,19 +98,18 @@ try {
   const liveRelationshipColor = await page.locator('svg path.relationship-line[marker-end="url(#relationship-arrow)"]').first().getAttribute('stroke');
   assert.equal(liveRelationshipColor, '#10b981', 'expected relationship color to update in the UI');
 
-  await page.getByRole('button', { name: 'Arkiv' }).click();
-  if (!await page.locator('#btn-save-map').isVisible()) {
-    await page.getByRole('button', { name: 'Arkiv' }).click();
-  }
-  await page.waitForTimeout(100);
-  await page.locator('#btn-save-map').click({ force: true });
-  await page.waitForTimeout(100);
-  const savedMaps = await page.evaluate(() => JSON.parse(localStorage.getItem('mindflow_saved_maps') || '{}'));
-  assert(Object.keys(savedMaps).length >= 1, 'expected Save Current to populate browser saved maps');
-  const latestMap = Object.values(savedMaps).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-  assert(savedMaps['Central Topic'], 'expected saved map name to follow the root topic text');
-  assert.equal(latestMap?.relationships?.[0]?.color, '#10b981', 'expected relationship color to persist in saved maps');
-  assert.equal(latestMap?.relationships?.[0]?.comment, 'Relationship note', 'expected relationship comment to persist in saved maps');
+  assert.equal(await page.locator('#btn-save-map').count(), 0, 'expected local Save button to be removed');
+  assert.equal(await page.locator('#btn-save-as-map').count(), 0, 'expected local Save As button to be removed');
+  assert.equal(await page.locator('#btn-export-json').count(), 1, 'expected JSON export button to remain available');
+  assert.equal(await page.locator('#btn-export-doc').count(), 1, 'expected Word export button to remain available');
+  assert.equal(await page.locator('#btn-export-pdf').count(), 1, 'expected PDF export button to remain available');
+
+  const localPersistenceAfterEdit = await page.evaluate(() => ({
+    savedMaps: localStorage.getItem('mindflow_saved_maps'),
+    autosave: localStorage.getItem('mindflow_autosave')
+  }));
+  assert.equal(localPersistenceAfterEdit.savedMaps, null, 'expected browser-saved maps to stay disabled');
+  assert.equal(localPersistenceAfterEdit.autosave, null, 'expected autosave to stay disabled');
 
   await page.locator('.node').first().dblclick({ force: true });
   await page.waitForTimeout(100);
@@ -118,29 +117,20 @@ try {
   await page.locator('.node-text-edit').type('Renamed Root');
   await page.locator('#canvas').click({ position: { x: 40, y: 40 }, force: true });
   await page.waitForTimeout(100);
-
-  await page.getByRole('button', { name: 'Arkiv' }).click();
-  if (!await page.locator('#btn-save-map').isVisible()) {
-    await page.getByRole('button', { name: 'Arkiv' }).click();
-  }
-  await page.waitForTimeout(100);
-  await page.locator('#btn-save-map').click({ force: true });
-  await page.waitForTimeout(100);
-  const renamedSavedMaps = await page.evaluate(() => JSON.parse(localStorage.getItem('mindflow_saved_maps') || '{}'));
-  assert(renamedSavedMaps['Renamed Root'], 'expected saved map name to update when the root topic changes');
-  assert(!renamedSavedMaps['Central Topic'], 'expected the old saved map name to be removed after renaming the root topic');
+  const renamedRootText = await page.locator('.node').first().textContent();
+  assert(renamedRootText?.includes('Renamed Root'), 'expected root topic rename to update in the UI');
 
   await page.locator('.node').nth(1).click({ force: true });
   await page.locator('#ctrl-add-child').click({ force: true });
   await page.waitForTimeout(100);
   const afterAddGrandchild = await page.locator('.node').count();
-  assert.equal(afterAddGrandchild, 4, 'expected Add Child on a branch node to create a grandchild');
+  assert.equal(afterAddGrandchild, 3, 'expected Add Child on a branch node to create a grandchild');
 
   await page.getByRole('button', { name: 'Visa' }).click();
   await page.locator('#visible-depth-input').fill('1');
   await page.waitForTimeout(100);
   const afterDepthLimit = await page.locator('.node').count();
-  assert.equal(afterDepthLimit, 3, 'expected visible depth 1 to hide grandchildren');
+  assert.equal(afterDepthLimit, 2, 'expected visible depth 1 to hide grandchildren');
 
   await page.getByRole('button', { name: 'Arkiv' }).click();
   if (!await page.locator('#btn-arrange-map').isVisible()) {
@@ -150,28 +140,34 @@ try {
   await page.locator('#btn-arrange-map').click({ force: true });
   await page.waitForTimeout(100);
   const afterArrangeCollapsedView = await page.locator('.node').count();
-  assert.equal(afterArrangeCollapsedView, 3, 'expected Arrange Map to keep the collapsed view unchanged');
+  assert.equal(afterArrangeCollapsedView, 2, 'expected Arrange Map to keep the collapsed view unchanged');
 
   await page.locator('#toolbar-visible-depth-buttons .visible-depth-quick-btn[data-depth="all"]').click({ force: true });
   await page.waitForTimeout(100);
   const afterDepthReset = await page.locator('.node').count();
-  assert.equal(afterDepthReset, 4, 'expected clearing the visible depth limit to show all nodes again');
+  assert.equal(afterDepthReset, 3, 'expected clearing the visible depth limit to show all nodes again');
 
   await page.locator('#toolbar-visible-depth-buttons .visible-depth-quick-btn[data-depth="1"]').click({ force: true });
   await page.waitForTimeout(100);
   const afterToolbarDepthLimit = await page.locator('.node').count();
-  assert.equal(afterToolbarDepthLimit, 3, 'expected toolbar quick button to apply visible depth filtering');
+  assert.equal(afterToolbarDepthLimit, 2, 'expected toolbar quick button to apply visible depth filtering');
   const storedVisibleDepth = await page.evaluate(() => localStorage.getItem('mindflow_visible_depth_limit'));
   assert.equal(storedVisibleDepth, '1', 'expected visible depth limit to persist in localStorage');
 
   await page.reload();
   await page.waitForSelector('.node');
   const afterReloadWithPersistedDepth = await page.locator('.node').count();
-  assert.equal(afterReloadWithPersistedDepth, 3, 'expected persisted visible depth limit to be restored after reload');
+  assert.equal(afterReloadWithPersistedDepth, 1, 'expected map content not to be restored after reload when local save is disabled');
   const restoredMenuInputValue = await page.locator('#visible-depth-input').inputValue();
   const restoredToolbarInputValue = await page.locator('#toolbar-visible-depth-input').inputValue();
   assert.equal(restoredMenuInputValue, '1', 'expected menu input to reflect restored visible depth limit');
   assert.equal(restoredToolbarInputValue, '1', 'expected toolbar input to reflect restored visible depth limit');
+  const localPersistenceAfterReload = await page.evaluate(() => ({
+    savedMaps: localStorage.getItem('mindflow_saved_maps'),
+    autosave: localStorage.getItem('mindflow_autosave')
+  }));
+  assert.equal(localPersistenceAfterReload.savedMaps, null, 'expected browser-saved maps to remain disabled after reload');
+  assert.equal(localPersistenceAfterReload.autosave, null, 'expected autosave to remain disabled after reload');
 
   assert.equal(pageErrors.length, 0, `expected no page errors, got: ${pageErrors.join('; ')}`);
   console.log('MindFlow smoke test passed');

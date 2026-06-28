@@ -19,11 +19,6 @@ function ensureCloudMenuMarkup() {
         return;
     }
 
-    const existingLocalList = dropdown.querySelector("#saved-maps-list");
-    const localListMarkup = existingLocalList
-        ? existingLocalList.outerHTML
-        : '<div class="saved-maps-list" id="saved-maps-list"><div class="empty-state">No saved maps found in browser storage.</div></div>';
-
     dropdown.innerHTML = `
         <div class="cloud-auth-row">
             <button class="btn btn-outline" id="btn-google-signin" title="Sign in with Google">
@@ -40,8 +35,6 @@ function ensureCloudMenuMarkup() {
         <div class="saved-maps-list" id="google-maps-list">
             <div class="empty-state">Logga in for att lista JSON i Google Drive.</div>
         </div>
-        <div class="menu-separator"></div>
-        ${localListMarkup}
     `;
 }
 
@@ -77,16 +70,14 @@ export function initDomElements() {
         btnHideSidebar: document.getElementById("hide-sidebar"),
         btnShowSidebar: document.getElementById("show-sidebar"),
         btnNewMap: document.getElementById("btn-new-map"),
-        btnSaveMap: document.getElementById("btn-save-map"),
-        btnSaveAsMap: document.getElementById("btn-save-as-map"),
         btnSaveGoogleMap: document.getElementById("btn-save-google-map"),
         btnArrangeMap: document.getElementById("btn-arrange-map"),
+        btnExportJson: document.getElementById("btn-export-json"),
         btnExportDoc: document.getElementById("btn-export-doc"),
         btnExportPdf: document.getElementById("btn-export-pdf"),
         pdfOrientationSelect: document.getElementById("pdf-orientation"),
         btnOpenMindflow: document.getElementById("btn-open-mindflow"),
         btnImportMindMeister: document.getElementById("btn-import-mindmeister"),
-        savedMapsList: document.getElementById("saved-maps-list"),
         googleMapsList: document.getElementById("google-maps-list"),
         btnGoogleSignin: document.getElementById("btn-google-signin"),
         btnGoogleSignout: document.getElementById("btn-google-signout"),
