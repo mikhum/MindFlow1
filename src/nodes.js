@@ -39,7 +39,13 @@ export function finishEditingNode(nodeId, newText) {
     }
 
     const originalText = state.nodes[nodeId].text;
-    const candidateText = (newText ?? "").trim() ? newText : originalText;
+    const candidateText = String(newText ?? "").replace(/\r\n?/g, "\n");
+    if (!candidateText.trim()) {
+        state.editingNodeId = null;
+        state.editingBuffer = null;
+        state.editingReplaceOnType = false;
+        return;
+    }
     if (candidateText !== originalText) {
         state.nodes[nodeId].text = candidateText;
         saveHistory();

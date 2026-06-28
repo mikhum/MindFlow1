@@ -804,6 +804,8 @@ body, html {
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 4px;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .node-collapse-toggle {

@@ -130,6 +130,12 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
 
     nodeDiv.innerHTML = content;
 
+    const renderedText = nodeDiv.querySelector(".node-text");
+    if (renderedText) {
+        renderedText.style.whiteSpace = "pre-wrap";
+        renderedText.style.wordBreak = "break-word";
+    }
+
     // Attach event listeners
     nodeDiv.addEventListener("pointerdown", (e) => handleNodePointerDown(e, nodeId));
     nodeDiv.addEventListener("dblclick", () => {
@@ -156,17 +162,53 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
             });
 
             editor.addEventListener("keydown", (e) => {
+                if (((e.ctrlKey || e.metaKey) || e.shiftKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof document.execCommand === "function") {
+                        document.execCommand("insertLineBreak");
+                    } else {
+                        const selection = window.getSelection();
+                        if (!selection || selection.rangeCount === 0) {
+                            return;
+                        }
+
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        const br = document.createElement("br");
+                        range.insertNode(br);
+                        range.setStartAfter(br);
+                        range.setEndAfter(br);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                    state.editingBuffer = editor.textContent || "";
+                    return;
+                }
+
                 if (e.key === "Enter") {
                     e.preventDefault();
+                    e.stopPropagation();
                     finishEditingNode(nodeId, editor.textContent || "");
                     render();
-                } else if (e.key === "Escape") {
+                    return;
+                }
+
+                if (e.key === "Escape") {
                     e.preventDefault();
+                    e.stopPropagation();
                     state.editingNodeId = null;
                     state.editingBuffer = null;
                     state.editingReplaceOnType = false;
                     render();
+                    return;
                 }
+            });
+
+            editor.addEventListener("blur", () => {
+                if (state.editingNodeId !== nodeId) return;
+                finishEditingNode(nodeId, editor.textContent || "");
+                render();
             });
         }, 0);
     }
