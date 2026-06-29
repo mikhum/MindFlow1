@@ -1036,6 +1036,51 @@ body, html {
     right: 14px;
 }
 
+.comment-panel {
+    position: absolute;
+    top: 156px;
+    right: calc(24px + var(--maps-sidebar-width));
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #c5ced9;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(8px);
+    z-index: 11;
+    min-width: 290px;
+}
+
+.comment-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.comment-panel-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #1e293b;
+}
+
+.comment-panel .node-comment-textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.comment-panel-hint {
+    margin-top: 0;
+}
+
+.workspace-container.maps-sidebar-collapsed .comment-panel {
+    right: 14px;
+}
+
 .control-btn {
     background: none;
     border: none;
@@ -1338,6 +1383,26 @@ body, html {
     }
 
     .workspace-container.maps-sidebar-collapsed .visible-depth-panel {
+        right: 8px;
+    }
+
+    .comment-panel {
+        top: 150px;
+        right: calc(18px + var(--maps-sidebar-width));
+        min-width: 260px;
+    }
+
+    .workspace-container.maps-sidebar-collapsed .comment-panel {
+        right: 18px;
+    }
+
+    .comment-panel {
+        top: 142px;
+        right: calc(8px + var(--maps-sidebar-width));
+        min-width: min(340px, calc(100vw - 16px));
+    }
+
+    .workspace-container.maps-sidebar-collapsed .comment-panel {
         right: 8px;
     }
 

@@ -86,8 +86,6 @@
                                 <i class="fa-solid fa-align-left"></i> Left
                             </button>
                         </div>
-                        <label class="form-label" for="node-comment" style="margin-top: 10px;">Kommentar</label>
-                        <textarea id="node-comment" placeholder="Add a comment or notes for this node..." class="node-comment-textarea"></textarea>
                     </div>
                 </div>
 
@@ -178,6 +176,14 @@
                         <button class="control-pill visible-depth-quick-btn" type="button" data-depth="all">Alla</button>
                     </div>
                 </div>
+            </section>
+
+            <section class="comment-panel" id="comment-panel" aria-label="Kommentarer">
+                <div class="comment-panel-header">
+                    <span class="comment-panel-title">Kommentar</span>
+                </div>
+                <textarea id="node-comment" placeholder="Add a comment or notes for this node..." class="node-comment-textarea"></textarea>
+                <p class="field-hint comment-panel-hint">Kommentaren sparas på markerat topic eller relation.</p>
             </section>
 
             <!-- Persistent Maps Sidebar -->

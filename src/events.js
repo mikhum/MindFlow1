@@ -622,6 +622,7 @@ function handleWorkspacePointerDown(e) {
         e.target.closest(".node") ||
         e.target.closest(".floating-controls") ||
         e.target.closest(".visible-depth-panel") ||
+        e.target.closest(".comment-panel") ||
         e.target.closest(".maps-sidebar-toggle") ||
         (sidebar && sidebar.contains(e.target)) ||
         (mapsSidebar && mapsSidebar.contains(e.target)) ||
