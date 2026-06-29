@@ -16,6 +16,7 @@ import {
     setGoogleClientId,
     isGoogleDriveConfigured,
     signInToGoogleDrive,
+    tryRestoreGoogleDriveSession,
     signOutFromGoogleDrive,
     getGoogleAuthState,
     listJsonFilesFromGoogleDrive,
@@ -224,6 +225,12 @@ function normalizeCloudMapName(fileName) {
         .trim() || "Cloud map";
 }
 
+function setGoogleAuthStatusMessage(message) {
+    const { googleAuthStatus } = getDomElements();
+    if (!googleAuthStatus) return;
+    googleAuthStatus.textContent = message;
+}
+
 function updateGoogleAuthUi() {
     const {
         googleAuthStatus,
@@ -359,6 +366,7 @@ export async function handleGoogleDriveSignIn() {
         const configured = ensureGoogleClientIdConfigured();
         if (!configured) return;
 
+        setGoogleAuthStatusMessage("Google: loggar in...");
         await signInToGoogleDrive();
         await refreshGoogleMapList();
         await flushAutosaveNow();
@@ -378,9 +386,28 @@ export function handleGoogleDriveSignOut() {
 }
 
 export async function refreshGoogleMapList(showErrorAlert = false) {
-    updateGoogleAuthUi();
+    if (!isGoogleDriveConfigured()) {
+        updateGoogleAuthUi();
+        googleMapsCache = [];
+        renderGoogleMapList([]);
+        return;
+    }
 
-    if (!isGoogleDriveConfigured() || !getGoogleAuthState().signedIn) {
+    if (!getGoogleAuthState().signedIn) {
+        setGoogleAuthStatusMessage("Google: forsoker aterstalla session...");
+        const restored = await tryRestoreGoogleDriveSession();
+        updateGoogleAuthUi();
+        if (!restored && !getGoogleAuthState().signedIn) {
+            setGoogleAuthStatusMessage("Google: session kunde inte aterstallas. Logga in.");
+            googleMapsCache = [];
+            renderGoogleMapList([]);
+            return;
+        }
+    } else {
+        updateGoogleAuthUi();
+    }
+
+    if (!getGoogleAuthState().signedIn) {
         googleMapsCache = [];
         renderGoogleMapList([]);
         return;
@@ -392,6 +419,7 @@ export async function refreshGoogleMapList(showErrorAlert = false) {
         renderGoogleMapList(files);
     } catch (err) {
         console.error("Failed to list Google Drive files:", err);
+        setGoogleAuthStatusMessage("Google: kunde inte lasa fillista.");
         googleMapsCache = [];
         renderGoogleMapList([]);
         if (showErrorAlert) {

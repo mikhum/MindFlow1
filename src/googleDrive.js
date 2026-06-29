@@ -94,7 +94,7 @@ async function requestAccessToken(interactivePrompt) {
             resolve(resp);
         };
 
-        client.requestAccessToken({ prompt: interactivePrompt ? "consent" : "" });
+        client.requestAccessToken({ prompt: interactivePrompt ? "select_account" : "" });
     });
 }
 
@@ -105,6 +105,17 @@ async function ensureAccessToken(interactivePrompt = false) {
 
     const resp = await requestAccessToken(interactivePrompt);
     return resp.access_token;
+}
+
+async function ensureAccessTokenWithSilentFirst(interactivePrompt = true) {
+    try {
+        return await ensureAccessToken(false);
+    } catch (silentError) {
+        if (!interactivePrompt) {
+            throw silentError;
+        }
+        return ensureAccessToken(true);
+    }
 }
 
 function buildDriveHeaders(accessToken, extraHeaders = {}) {
@@ -127,14 +138,14 @@ async function fetchGoogleUserEmail(accessToken) {
     }
 }
 
-async function driveFetch(url, options = {}, interactiveRetry = false) {
-    const accessToken = await ensureAccessToken(interactiveRetry);
+async function driveFetch(url, options = {}, retryAttempted = false) {
+    const accessToken = await ensureAccessToken(false);
     const response = await fetch(url, {
         ...options,
         headers: buildDriveHeaders(accessToken, options.headers || {})
     });
 
-    if (response.status === 401 && !interactiveRetry) {
+    if (response.status === 401 && !retryAttempted) {
         tokenResponse = null;
         return driveFetch(url, options, true);
     }
@@ -206,9 +217,23 @@ export function setGoogleClientId(clientId) {
 }
 
 export async function signInToGoogleDrive() {
-    const token = await ensureAccessToken(true);
+    const token = await ensureAccessTokenWithSilentFirst(true);
     userEmail = await fetchGoogleUserEmail(token);
     return { email: userEmail };
+}
+
+export async function tryRestoreGoogleDriveSession() {
+    if (!isGoogleDriveConfigured()) {
+        return false;
+    }
+
+    try {
+        const token = await ensureAccessTokenWithSilentFirst(false);
+        userEmail = await fetchGoogleUserEmail(token);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 export function signOutFromGoogleDrive() {
