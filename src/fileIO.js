@@ -41,7 +41,7 @@ export async function handleSaveMap() {
     const suggestedName = state.currentMapName || (state.nodes.root && state.nodes.root.text) || "My Mindmap";
     
     const mapData = {
-        format: "mindflow",
+        format: "mindmap",
         version: "1.0",
         name: suggestedName,
         nodes: state.nodes,
@@ -58,8 +58,8 @@ export async function handleSaveMap() {
                 state.saveFileHandle = await window.showSaveFilePicker({
                     types: [
                         {
-                            description: "MindFlow map file",
-                            accept: { "application/json": [".mindflow", ".json"] }
+                            description: "MindMap file",
+                            accept: { "application/json": [".mindmap", ".mindflow", ".json"] }
                         }
                     ],
                     suggestedName: getSuggestedMapFilename(mapData.name)
@@ -112,7 +112,7 @@ export function getSuggestedMapFilename(name) {
         .replace(/\s+/g, "-") // Replace spaces with dashes
         .replace(/^-+|-+$/g, ""); // Trim leading/trailing dashes
     
-    return safeName ? `${safeName}.mindflow` : "mindflow.mindflow";
+    return safeName ? `${safeName}.mindmap` : "mindmap.mindmap";
 }
 
 /**
@@ -253,7 +253,7 @@ export function handleNewMap() {
  */
 export function handleExportFile() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-        format: "mindflow",
+        format: "mindmap",
         version: "1.0",
         name: state.currentMapName || "My Mindmap",
         nodes: state.nodes,
@@ -283,13 +283,13 @@ export function handleImportFile(e) {
         try {
             const data = JSON.parse(evt.target.result);
             if (data && data.nodes && data.nodes.root) {
-                // If this is a MindFlow format file, preserve original layout
-                const isMindFlowFile = data.format === "mindflow";
+                // If this is a MindMap or legacy MindFlow format file, preserve original layout
+                const isMindMapFile = data.format === "mindmap" || data.format === "mindflow";
                 importMapData({
                     nodes: data.nodes,
                     relationships: data.relationships || [],
                     name: data.name || file.name.replace(/\.[^/.]+$/, "")
-                }, file.name, isMindFlowFile);
+                }, file.name, isMindMapFile);
             } else {
                 throw new Error("Invalid mindmap JSON format: root node is missing.");
             }

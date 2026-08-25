@@ -36,7 +36,7 @@ export function initDomElements() {
         btnArrangeMap: document.getElementById("btn-arrange-map"),
         btnExportFile: document.getElementById("btn-export-file"),
         btnExportDoc: document.getElementById("btn-export-doc"),
-        btnOpenMindflow: document.getElementById("btn-open-mindflow"),
+        btnOpenMindmap: document.getElementById("btn-open-mindmap"),
         btnImportFile: document.getElementById("btn-import-file"),
         btnImportMindMeister: document.getElementById("btn-import-mindmeister"),
         savedMapsList: document.getElementById("saved-maps-list"),

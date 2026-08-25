@@ -105,7 +105,21 @@ try {
   assert.equal(latestMap?.relationships?.[0]?.comment, 'Relationship note', 'expected relationship comment to persist in saved maps');
 
   assert.equal(pageErrors.length, 0, `expected no page errors, got: ${pageErrors.join('; ')}`);
-  console.log('MindFlow smoke test passed');
+
+  // --- fileIO tests: export filename extension ---
+  const exportFilename = await page.evaluate(() => {
+    const name = 'test map';
+    const safeName = name.trim().toLowerCase().replace(/[<>:"/\\|?*\x00-\x1f]/g, '-').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+    return safeName ? `${safeName}.mindmap` : 'mindmap.mindmap';
+  });
+  assert.equal(exportFilename, 'test-map.mindmap', 'expected getSuggestedMapFilename to produce .mindmap extension');
+
+  // --- fileIO tests: import accept attribute ---
+  const acceptAttr = await page.locator('#file-import-input').getAttribute('accept');
+  assert(acceptAttr.includes('.mindmap'), 'expected file-import-input to accept .mindmap');
+  assert(acceptAttr.includes('.mindflow'), 'expected file-import-input to accept .mindflow (legacy)');
+
+  console.log('MindMap smoke test passed');
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => {

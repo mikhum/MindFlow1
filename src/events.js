@@ -47,7 +47,7 @@ export function setupEventListeners() {
         btnArrangeMap,
         btnExportFile,
         btnExportDoc,
-        btnOpenMindflow,
+        btnOpenMindmap,
         btnImportFile,
         btnImportMindMeister,
         fileImportInput,
@@ -129,8 +129,8 @@ export function setupEventListeners() {
     if (btnExportDoc) {
         btnExportDoc.addEventListener("click", handleExportDoc);
     }
-    if (btnOpenMindflow) {
-        btnOpenMindflow.addEventListener("click", () => fileImportInput.click());
+    if (btnOpenMindmap) {
+        btnOpenMindmap.addEventListener("click", () => fileImportInput.click());
     }
     btnImportFile.addEventListener("click", () => fileImportInput.click());
     if (btnImportMindMeister) {
