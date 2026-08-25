@@ -44,7 +44,7 @@ async function init() {
     setTimeout(() => {
         renderConnectors();
     }, 150);
-    console.log("MindFlow app initialized successfully!");
+    console.log("MindMap app initialized successfully!");
 }
 
 // Start the app when DOM is ready

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MindFlow - Interactive Mindmap Editor</title>
+    <title>MindMap - Interactive Mindmap Editor</title>
     <!-- Google Fonts: Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
         <header class="menu-bar" id="sidebar">
             <div class="menu-brand">
                 <i class="fa-solid fa-diagram-project brand-icon"></i>
-                <strong>MindFlow</strong>
+                <strong>MindMap</strong>
             </div>
 
             <nav class="menu-root" aria-label="Main menu">
@@ -34,14 +34,14 @@
                             <i class="fa-solid fa-sitemap"></i> Arrange Map
                         </button>
                         <div class="menu-separator"></div>
-                        <button class="btn btn-outline" id="btn-open-mindflow" title="Open a saved MindFlow file (.mindflow)">
-                            <i class="fa-solid fa-folder-open"></i> Open MindFlow
+                        <button class="btn btn-outline" id="btn-open-mindflow" title="Open a saved MindMap file (.mindmap) or legacy MindFlow file (.mindflow)">
+                            <i class="fa-solid fa-folder-open"></i> Open MindMap
                         </button>
                         <button class="btn btn-outline" id="btn-import-mindmeister" title="Import Freemind (.mm)">
                             <i class="fa-solid fa-file-import"></i> Import Freemind
                         </button>
                         <div class="button-group-row">
-                            <button class="btn btn-outline" id="btn-export-json" title="Export as MindFlow JSON file">
+                            <button class="btn btn-outline" id="btn-export-json" title="Export as MindMap JSON file (.mindmap)">
                                 <i class="fa-solid fa-file-code"></i> Export JSON
                             </button>
                             <button class="btn btn-outline" id="btn-export-doc" title="Export as Word document">
@@ -141,7 +141,7 @@
                 </div>
             </nav>
 
-            <input type="file" id="file-import-input" accept=".mindflow" style="display: none;">
+            <input type="file" id="file-import-input" accept=".mindmap,.mindflow,.json" style="display: none;">
             <input type="file" id="file-import-mindmeister-input" accept=".mm,.xml" style="display: none;">
             <button class="toggle-sidebar-btn" id="hide-sidebar" title="Toggle Menu" style="display:none;">
                 <i class="fa-solid fa-bars"></i>
