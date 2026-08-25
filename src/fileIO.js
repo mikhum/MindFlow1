@@ -220,6 +220,7 @@ function saveMapToBrowserStorage(name, mapData, previousName = null) {
 
 function normalizeCloudMapName(fileName) {
     return String(fileName || "")
+        .replace(/\.mmh$/i, "")
         .replace(/\.mindflow$/i, "")
         .replace(/\.json$/i, "")
         .trim() || "Cloud map";
@@ -494,8 +495,8 @@ export function getSuggestedMapFilename(name) {
         .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-") // Remove filesystem-invalid characters
         .replace(/\s+/g, "-") // Replace spaces with dashes
         .replace(/^-+|-+$/g, ""); // Trim leading/trailing dashes
-    
-    return safeName ? `${safeName}.mindflow` : "mindflow.mindflow";
+
+    return safeName ? `${safeName}.mmh` : "mindmap.mmh";
 }
 
 /**
@@ -604,8 +605,8 @@ export async function handleOpenMindflow() {
             multiple: false,
             types: [
                 {
-                    description: "MindFlow map file",
-                    accept: { "application/json": [".mindflow", ".json"] }
+                    description: "MindFlow / MMH map file",
+                    accept: { "application/json": [".mmh", ".mindflow", ".json"] }
                 }
             ]
         });

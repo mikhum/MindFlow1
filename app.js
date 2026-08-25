@@ -1388,8 +1388,8 @@ async function handleSaveMap() {
                 saveFileHandle = await window.showSaveFilePicker({
                     types: [
                         {
-                            description: "MindFlow map file",
-                            accept: { "application/json": [".mindflow", ".json"] }
+                            description: "MindFlow / MMH map file",
+                            accept: { "application/json": [".mmh", ".mindflow", ".json"] }
                         }
                     ],
                     suggestedName: getSuggestedMapFilename(mapData.name)
@@ -1426,8 +1426,8 @@ function getSuggestedMapFilename(name) {
         .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-") // Remove filesystem-invalid characters
         .replace(/\s+/g, "-") // Replace spaces with dashes
         .replace(/^-+|-+$/g, ""); // Trim leading/trailing dashes
-    
-    return safeName ? `${safeName}.mindflow` : "mindflow.mindflow";
+
+    return safeName ? `${safeName}.mmh` : "mindmap.mmh";
 }
 
 async function writeMapToHandle(handle, data) {

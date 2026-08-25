@@ -37,7 +37,7 @@ function getSuggestedMapFilename(name) {
         .replace(/\s+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-    return safeName ? `${safeName}.mindflow` : "mindflow.mindflow";
+    return safeName ? `${safeName}.mmh` : "mindmap.mmh";
 }
 
 function clearAutosaveTimer() {

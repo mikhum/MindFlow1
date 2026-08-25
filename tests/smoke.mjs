@@ -65,6 +65,16 @@ try {
   await page.goto(url);
   await page.waitForSelector('.node');
 
+  const suggestedFilename = await page.evaluate(async () => {
+    const { getSuggestedMapFilename } = await import('/src/fileIO.js');
+    return getSuggestedMapFilename('My Map');
+  });
+  assert.equal(suggestedFilename, 'my-map.mmh', 'expected default saved map extension to be .mmh');
+
+  const importAccept = await page.locator('#file-import-input').getAttribute('accept');
+  assert(importAccept.includes('.mmh'), 'expected file import to accept .mmh exports');
+  assert(importAccept.includes('.mindflow'), 'expected file import to keep supporting legacy .mindflow files');
+
   const initialCount = await page.locator('.node').count();
   assert.equal(initialCount, 1, 'expected a single root node on startup');
 
