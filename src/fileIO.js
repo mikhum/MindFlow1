@@ -184,10 +184,10 @@ function loadMindflowFromText(fileText, filename) {
 
     const data = JSON.parse(normalizedText);
     if (!data || !data.nodes || !data.nodes.root) {
-        throw new Error("Invalid MindFlow file format: root node is missing.");
+        throw new Error("Invalid MindMap file format: root node is missing.");
     }
 
-    const isMindFlowFile = data.format === "mindflow";
+    const isMindFlowFile = data.format === "mindflow" || data.format === "mindmap";
     importMapData({
         nodes: data.nodes,
         relationships: data.relationships || [],
@@ -220,6 +220,7 @@ function saveMapToBrowserStorage(name, mapData, previousName = null) {
 
 function normalizeCloudMapName(fileName) {
     return String(fileName || "")
+        .replace(/\.mindmap$/i, "")
         .replace(/\.mindflow$/i, "")
         .replace(/\.json$/i, "")
         .trim() || "Cloud map";
@@ -454,7 +455,7 @@ export async function handleOpenGoogleMap(fileId) {
     try {
         const data = await getJsonFromGoogleDrive(fileId);
         if (!data || !data.nodes || !data.nodes.root) {
-            throw new Error("Invalid MindFlow JSON structure.");
+            throw new Error("Invalid MindMap JSON structure.");
         }
 
         importMapData({
@@ -495,7 +496,7 @@ export function getSuggestedMapFilename(name) {
         .replace(/\s+/g, "-") // Replace spaces with dashes
         .replace(/^-+|-+$/g, ""); // Trim leading/trailing dashes
     
-    return safeName ? `${safeName}.mindflow` : "mindflow.mindflow";
+    return safeName ? `${safeName}.mindmap` : "mindmap.mindmap";
 }
 
 /**
@@ -604,8 +605,8 @@ export async function handleOpenMindflow() {
             multiple: false,
             types: [
                 {
-                    description: "MindFlow map file",
-                    accept: { "application/json": [".mindflow", ".json"] }
+                    description: "MindMap file (.mindmap) or legacy MindFlow file (.mindflow)",
+                    accept: { "application/json": [".mindmap", ".mindflow", ".json"] }
                 }
             ]
         });
@@ -622,8 +623,8 @@ export async function handleOpenMindflow() {
             return;
         }
 
-        console.error("Error opening MindFlow file:", err);
-        alert(`Could not open the selected MindFlow file: ${err.message}`);
+        console.error("Error opening MindMap file:", err);
+        alert(`Could not open the selected MindMap file: ${err.message}`);
     }
 }
 
@@ -637,8 +638,8 @@ export function handleImportFile(e) {
             clearCurrentFileBinding();
         })
         .catch((err) => {
-            console.error("Error importing MindFlow file:", err);
-            alert(`Could not open the selected MindFlow file: ${err.message}`);
+            console.error("Error importing MindMap file:", err);
+            alert(`Could not open the selected MindMap file: ${err.message}`);
         });
     const { fileImportInput } = getDomElements();
     if (fileImportInput) fileImportInput.value = "";
@@ -703,7 +704,7 @@ export function handleExportDoc() {
     const blob = new Blob([html], { type: "application/msword" });
     const blobUrl = URL.createObjectURL(blob);
     
-    const filename = getSuggestedMapFilename(getMapDisplayName()).replace(/\.mindflow$/i, ".doc");
+    const filename = getSuggestedMapFilename(getMapDisplayName()).replace(/\.mindmap$/i, ".doc");
     const link = document.createElement("a");
     link.href = blobUrl;
     link.download = filename;

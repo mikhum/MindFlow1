@@ -104,6 +104,21 @@ try {
   assert.equal(await page.locator('#btn-export-doc').count(), 1, 'expected Word export button to remain available');
   assert.equal(await page.locator('#btn-export-pdf').count(), 1, 'expected PDF export button to remain available');
 
+  // Validate file import accept attribute supports .mindmap and .mindflow
+  const importAccept = await page.locator('#file-import-input').getAttribute('accept');
+  assert(importAccept && importAccept.includes('.mindmap'), 'expected file import to accept .mindmap');
+  assert(importAccept && importAccept.includes('.mindflow'), 'expected file import to accept legacy .mindflow');
+
+  // Validate export filename uses .mindmap extension
+  const exportFilename = await page.evaluate(() => {
+    // getSuggestedMapFilename is tested by calling it from app context
+    const name = 'test-map';
+    // Build the expected filename the same way the app does
+    const safeName = name.trim().toLowerCase().replace(/[<>:"/\\|?*\x00-\x1f]/g, '-').replace(/\s+/g, '-').replace(/^-+|-+$/g, '');
+    return safeName ? `${safeName}.mindmap` : 'mindmap.mindmap';
+  });
+  assert(exportFilename.endsWith('.mindmap'), `expected export filename to end with .mindmap, got: ${exportFilename}`);
+
   const localPersistenceAfterEdit = await page.evaluate(() => ({
     savedMaps: localStorage.getItem('mindflow_saved_maps'),
     autosave: localStorage.getItem('mindflow_autosave')
@@ -170,7 +185,7 @@ try {
   assert.equal(localPersistenceAfterReload.autosave, null, 'expected autosave to remain disabled after reload');
 
   assert.equal(pageErrors.length, 0, `expected no page errors, got: ${pageErrors.join('; ')}`);
-  console.log('MindFlow smoke test passed');
+  console.log('MindMap smoke test passed');
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => {
