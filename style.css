@@ -798,14 +798,32 @@ body, html {
 
 .node.editing {
     border-style: dashed;
+    cursor: default;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
-.node .editing-text {
+.node.node-inline-text.editing {
+    border: 1px dashed rgba(99, 102, 241, 0.6);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    cursor: default;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.node .editing-text,
+.node-text-edit {
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 4px;
     white-space: pre-wrap;
     word-break: break-word;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+    outline: none;
 }
 
 .node-collapse-toggle {

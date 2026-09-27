@@ -598,6 +598,10 @@ function handleGlobalPointerDown(e) {
  * Handle workspace pointer down (panning)
  */
 function handleWorkspacePointerDown(e) {
+    if (e.target.closest(".node")) {
+        return;
+    }
+
     if (state.editingNodeId) {
         if (commitActiveEdit()) {
             render();

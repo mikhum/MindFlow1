@@ -138,7 +138,11 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
 
     // Attach event listeners
     nodeDiv.addEventListener("pointerdown", (e) => handleNodePointerDown(e, nodeId));
-    nodeDiv.addEventListener("dblclick", () => {
+    nodeDiv.addEventListener("dblclick", (e) => {
+        if (state.editingNodeId === nodeId) {
+            e.stopPropagation();
+            return;
+        }
         startEditingNode(nodeId);
         render();
     });
@@ -156,6 +160,13 @@ function renderNode(nodeId, searchMatchSet, currentSearchMatchId) {
                 selection.removeAllRanges();
                 selection.addRange(range);
             }
+
+            // Isolate editor mouse/pointer events so clicking to place the caret or select text
+            // does not bubble to node dragging, workspace panning, or re-render.
+            editor.addEventListener("pointerdown", (e) => e.stopPropagation());
+            editor.addEventListener("mousedown", (e) => e.stopPropagation());
+            editor.addEventListener("click", (e) => e.stopPropagation());
+            editor.addEventListener("dblclick", (e) => e.stopPropagation());
 
             editor.addEventListener("input", () => {
                 state.editingBuffer = editor.textContent || "";
@@ -553,6 +564,13 @@ function escapeHtml(text) {
 export function handleNodePointerDown(e, nodeId) {
     if (e.button !== 0) return; // Only left-click
 
+    // If this node is already in edit mode, stop propagation so we do not drag the node,
+    // re-trigger double-click selection, or bubble to workspace pan/commit.
+    if (state.editingNodeId === nodeId) {
+        e.stopPropagation();
+        return;
+    }
+
     const now = Date.now();
     const isDoubleClick = state.lastPointerDownNodeId === nodeId && (now - state.lastPointerDownAt) < 320;
     state.lastPointerDownNodeId = nodeId;
@@ -565,7 +583,6 @@ export function handleNodePointerDown(e, nodeId) {
         return;
     }
 
-    if (state.editingNodeId === nodeId) return;
     if (state.editingNodeId && state.editingNodeId !== nodeId) {
         const editedNodeId = state.editingNodeId;
         const editedText = typeof state.editingBuffer === "string"
