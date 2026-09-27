@@ -88,6 +88,13 @@
                                 <i class="fa-solid fa-align-left"></i> Left
                             </button>
                         </div>
+                        <div class="menu-separator"></div>
+                        <button class="btn btn-outline" id="btn-copy-node" title="Kopiera markerad gren (Ctrl+C)">
+                            <i class="fa-solid fa-copy"></i> Kopiera gren (Ctrl+C)
+                        </button>
+                        <button class="btn btn-outline" id="btn-paste-node" title="Klistra in kopierad gren under vald nod (Ctrl+V)">
+                            <i class="fa-solid fa-paste"></i> Klistra in gren (Ctrl+V)
+                        </button>
                     </div>
                 </div>
 
@@ -164,11 +171,14 @@
             </button>
 
             <section class="visible-depth-panel" id="visible-depth-panel" aria-label="Nivåfilter">
-                <div class="visible-depth-panel-header">
+                <div class="visible-depth-panel-header" id="visible-depth-panel-header">
                     <span class="visible-depth-panel-title">Nivåfilter</span>
                     <span class="visible-depth-badge" id="visible-depth-badge">Alla nivåer</span>
+                    <button class="panel-toggle-btn" id="btn-toggle-depth-panel" type="button" title="Förminska / Expandera nivåfilter" aria-label="Förminska nivåfilter">
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
                 </div>
-                <div class="toolbar-visible-depth" aria-label="Visa nivåer">
+                <div class="toolbar-visible-depth" id="toolbar-visible-depth" aria-label="Visa nivåer">
                     <input type="number" id="toolbar-visible-depth-input" class="toolbar-visible-depth-input" min="1" step="1" placeholder="Alla" aria-label="Max visible levels from central topic toolbar">
                     <div class="toolbar-visible-depth-buttons" id="toolbar-visible-depth-buttons">
                         <button class="control-pill visible-depth-quick-btn" type="button" data-depth="1">1</button>
@@ -181,8 +191,11 @@
             </section>
 
             <section class="comment-panel" id="comment-panel" aria-label="Kommentarer">
-                <div class="comment-panel-header">
-                    <span class="comment-panel-title">Kommentar</span>
+                <div class="comment-panel-header" id="comment-panel-header">
+                    <span class="comment-panel-title"><i class="fa-regular fa-comment-dots"></i> Kommentar</span>
+                    <button class="panel-toggle-btn" id="btn-toggle-comment-panel" type="button" title="Förminska / Expandera kommentarer" aria-label="Förminska kommentarer">
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
                 </div>
                 <textarea id="node-comment" placeholder="Add a comment or notes for this node..." class="node-comment-textarea"></textarea>
                 <p class="field-hint comment-panel-hint">Kommentaren sparas på markerat topic eller relation.</p>
@@ -240,6 +253,12 @@
                 </button>
                 <button class="control-btn" id="ctrl-add-child" title="Add Child (Tab)">
                     <i class="fa-solid fa-circle-plus"></i>
+                </button>
+                <button class="control-btn" id="ctrl-copy-node" title="Kopiera gren (Ctrl+C)">
+                    <i class="fa-solid fa-copy"></i>
+                </button>
+                <button class="control-btn" id="ctrl-paste-node" title="Klistra in gren (Ctrl+V)">
+                    <i class="fa-solid fa-paste"></i>
                 </button>
                 <button class="control-btn" id="ctrl-add-relationship" title="Add Relationship Link (L)">
                     <i class="fa-solid fa-link"></i>
@@ -302,6 +321,10 @@
                         <div class="shortcut-item">
                             <span class="key">Scroll Wheel</span>
                             <span class="action">Zoom in / Zoom out</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="key">Ctrl + C</span> / <span class="key">Ctrl + V</span>
+                            <span class="action">Kopiera / Klistra in gren med underträd</span>
                         </div>
                         <div class="shortcut-item">
                             <span class="key">Ctrl + Z</span> / <span class="key">Ctrl + Y</span>

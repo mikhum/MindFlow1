@@ -19,6 +19,8 @@ import { saveHistory } from './history.js';
 async function init() {
     // Initialize DOM element references
     initDomElements();
+    window.state = state;
+    window.render = render;
 
     // Setup event listeners
     setupEventListeners();

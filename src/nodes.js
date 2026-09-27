@@ -387,3 +387,147 @@ export function toggleNodeCollapsed(nodeId) {
     saveHistory();
     return node.collapsed;
 }
+
+/**
+ * Copy a node and all its descendants to the clipboard
+ */
+export function copyBranch(nodeId) {
+    if (!state.nodes[nodeId]) return null;
+
+    const descendantIds = getDescendants(nodeId);
+    const allNodeIds = [nodeId, ...descendantIds];
+    const idSet = new Set(allNodeIds);
+
+    // Deep clone each node
+    const nodes = allNodeIds.map(id => {
+        const node = state.nodes[id];
+        return {
+            originalId: id,
+            parentOriginalId: node.parent,
+            text: node.text,
+            x: node.x,
+            y: node.y,
+            width: node.width,
+            height: node.height,
+            color: node.color ? JSON.parse(JSON.stringify(node.color)) : undefined,
+            comment: node.comment || "",
+            textAlign: node.textAlign || "center",
+            collapsed: !!node.collapsed
+        };
+    });
+
+    // Also copy relationships that are entirely within this subtree
+    const internalRelationships = (state.relationships || [])
+        .filter(r => idSet.has(r.from) && idSet.has(r.to))
+        .map(r => ({
+            fromOriginalId: r.from,
+            toOriginalId: r.to,
+            color: r.color,
+            comment: r.comment
+        }));
+
+    state.clipboardBranch = {
+        sourceRootId: nodeId,
+        nodes,
+        relationships: internalRelationships
+    };
+
+    return state.clipboardBranch;
+}
+
+/**
+ * Paste copied branch under targetParentId
+ */
+export function pasteBranch(targetParentId) {
+    if (!state.nodes[targetParentId] || !state.clipboardBranch || !state.clipboardBranch.nodes?.length) {
+        return null;
+    }
+
+    const { nodes, relationships: branchRelationships, sourceRootId } = state.clipboardBranch;
+
+    // Un-collapse target parent if it was collapsed
+    if (state.nodes[targetParentId].collapsed) {
+        state.nodes[targetParentId].collapsed = false;
+    }
+
+    const rootX = getAbsoluteCoords("root", true).x;
+    const parentAbs = getAbsoluteCoords(targetParentId, true);
+    const isLeftSide = parentAbs.x < rootX;
+    const sideOffset = isLeftSide ? -NEW_NODE_HORIZONTAL_OFFSET : NEW_NODE_HORIZONTAL_OFFSET;
+
+    // Determine if source branch was on left side to mirror descendants if side changed
+    const sourceNodeData = nodes.find(n => n.originalId === sourceRootId);
+    const sourceWasLeft = sourceNodeData && typeof sourceNodeData.x === "number" ? sourceNodeData.x < 0 : false;
+    const shouldMirrorDescendants = sourceWasLeft !== isLeftSide;
+
+    // Calculate Y position among target's existing siblings
+    const existingSiblings = getChildren(targetParentId);
+    let proposedY = 0;
+    const minSiblingDistance = 90;
+    const siblingStep = 100;
+    while (existingSiblings.some(id => Math.abs((state.nodes[id]?.y || 0) - proposedY) < minSiblingDistance)) {
+        proposedY += siblingStep;
+    }
+
+    // Map old IDs to new IDs
+    const idMap = new Map();
+    nodes.forEach(n => {
+        idMap.set(n.originalId, generateId());
+    });
+
+    const newRootId = idMap.get(sourceRootId);
+
+    // Create the nodes
+    nodes.forEach(n => {
+        const newId = idMap.get(n.originalId);
+        const isBranchRoot = n.originalId === sourceRootId;
+        const newParentId = isBranchRoot ? targetParentId : idMap.get(n.parentOriginalId);
+
+        let finalX = n.x;
+        if (isBranchRoot) {
+            finalX = sideOffset;
+        } else if (shouldMirrorDescendants && typeof finalX === "number") {
+            finalX = -finalX;
+        }
+
+        const newNode = {
+            id: newId,
+            text: n.text,
+            parent: newParentId,
+            x: finalX,
+            y: isBranchRoot ? proposedY : n.y,
+            comment: n.comment || "",
+            textAlign: n.textAlign || "center",
+            collapsed: n.collapsed
+        };
+
+        if (n.width) newNode.width = n.width;
+        if (n.height) newNode.height = n.height;
+        if (n.color) newNode.color = JSON.parse(JSON.stringify(n.color));
+
+        state.nodes[newId] = newNode;
+    });
+
+    // Recreate internal relationships with new IDs
+    if (branchRelationships && branchRelationships.length) {
+        branchRelationships.forEach(r => {
+            const newFrom = idMap.get(r.fromOriginalId);
+            const newTo = idMap.get(r.toOriginalId);
+            if (newFrom && newTo) {
+                state.relationships.push({
+                    id: generateId(),
+                    from: newFrom,
+                    to: newTo,
+                    color: r.color,
+                    comment: r.comment
+                });
+            }
+        });
+    }
+
+    state.selectedNodeId = newRootId;
+    state.selectedRelationshipId = null;
+    saveHistory();
+
+    return newRootId;
+}

@@ -17,6 +17,7 @@ export const state = {
     editingBuffer: null,
     editingReplaceOnType: false,
     selectedRelationshipId: null,
+    clipboardBranch: null,
 
     // --- Viewport & Transform ---
     viewportTransform: { x: 0, y: 0, scale: 1 },

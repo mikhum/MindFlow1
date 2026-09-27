@@ -7,7 +7,7 @@ import { state } from './state.js';
 import { getDomElements } from './dom.js';
 import { getAbsoluteCoords, isDescendantOf } from './utils.js';
 import { render, renderConnectors, updateNodeStyleControls, showHelp, handleNodePointerDown } from './rendering.js';
-import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, setNodeTextAlign, reparentNode, mirrorSubtreeHorizontally } from './nodes.js';
+import { selectNode, addChildNode, addSiblingNode, deleteNode, finishEditingNode, startEditingNode, setNodeColor, clearNodeColor, setNodeComment, setNodeTextAlign, reparentNode, mirrorSubtreeHorizontally, copyBranch, pasteBranch } from './nodes.js';
 import {
     handleSaveToGoogleDrive,
     handleGoogleDriveSignIn,
@@ -235,10 +235,20 @@ export function setupEventListeners() {
         ctrlZoomOut,
         ctrlResetView,
         ctrlAddChild,
+        ctrlCopyNode,
+        ctrlPasteNode,
+        btnCopyNode,
+        btnPasteNode,
         ctrlAddRelationship,
         ctrlDeleteNode,
         ctrlHelp,
         menuOpenHelp,
+        visibleDepthPanel,
+        visibleDepthPanelHeader,
+        btnToggleDepthPanel,
+        commentPanel,
+        commentPanelHeader,
+        btnToggleCommentPanel,
         btnNewMap,
         btnSaveGoogleMap,
         btnArrangeMap,
@@ -324,6 +334,32 @@ export function setupEventListeners() {
         addChildNode(state.selectedNodeId);
         render();
     });
+    if (ctrlCopyNode) {
+        ctrlCopyNode.addEventListener("click", () => {
+            if (state.selectedNodeId) copyBranch(state.selectedNodeId);
+        });
+    }
+    if (btnCopyNode) {
+        btnCopyNode.addEventListener("click", () => {
+            if (state.selectedNodeId) copyBranch(state.selectedNodeId);
+        });
+    }
+    if (ctrlPasteNode) {
+        ctrlPasteNode.addEventListener("click", () => {
+            if (state.selectedNodeId && state.clipboardBranch) {
+                const newId = pasteBranch(state.selectedNodeId);
+                if (newId) render();
+            }
+        });
+    }
+    if (btnPasteNode) {
+        btnPasteNode.addEventListener("click", () => {
+            if (state.selectedNodeId && state.clipboardBranch) {
+                const newId = pasteBranch(state.selectedNodeId);
+                if (newId) render();
+            }
+        });
+    }
     ctrlAddRelationship.addEventListener("click", () => {
         if (state.selectedNodeId) startLinkingMode(state.selectedNodeId);
     });
@@ -336,6 +372,72 @@ export function setupEventListeners() {
             render();
         }
     });
+
+    // --- Collapsible floating panels (Nivåfilter och Kommentarer) ---
+    const DEPTH_PANEL_KEY = "mindflow_depth_panel_collapsed";
+    const COMMENT_PANEL_KEY = "mindflow_comment_panel_collapsed";
+
+    function setDepthPanelCollapsed(collapsed) {
+        if (!visibleDepthPanel) return;
+        visibleDepthPanel.classList.toggle("collapsed", collapsed);
+        if (btnToggleDepthPanel) {
+            btnToggleDepthPanel.setAttribute("aria-expanded", String(!collapsed));
+            btnToggleDepthPanel.title = collapsed ? "Expandera nivåfilter" : "Förminska nivåfilter";
+        }
+        try {
+            localStorage.setItem(DEPTH_PANEL_KEY, collapsed ? "1" : "0");
+        } catch {}
+    }
+
+    function setCommentPanelCollapsed(collapsed) {
+        if (!commentPanel) return;
+        commentPanel.classList.toggle("collapsed", collapsed);
+        if (btnToggleCommentPanel) {
+            btnToggleCommentPanel.setAttribute("aria-expanded", String(!collapsed));
+            btnToggleCommentPanel.title = collapsed ? "Expandera kommentarer" : "Förminska kommentarer";
+        }
+        try {
+            localStorage.setItem(COMMENT_PANEL_KEY, collapsed ? "1" : "0");
+        } catch {}
+    }
+
+    if (btnToggleDepthPanel) {
+        btnToggleDepthPanel.addEventListener("click", (e) => {
+            e.stopPropagation();
+            setDepthPanelCollapsed(!visibleDepthPanel.classList.contains("collapsed"));
+        });
+    }
+    if (visibleDepthPanelHeader) {
+        visibleDepthPanelHeader.addEventListener("click", () => {
+            if (visibleDepthPanel.classList.contains("collapsed")) {
+                setDepthPanelCollapsed(false);
+            }
+        });
+    }
+
+    if (btnToggleCommentPanel) {
+        btnToggleCommentPanel.addEventListener("click", (e) => {
+            e.stopPropagation();
+            setCommentPanelCollapsed(!commentPanel.classList.contains("collapsed"));
+        });
+    }
+    if (commentPanelHeader) {
+        commentPanelHeader.addEventListener("click", () => {
+            if (commentPanel.classList.contains("collapsed")) {
+                setCommentPanelCollapsed(false);
+            }
+        });
+    }
+
+    // Restore saved panel states
+    try {
+        if (localStorage.getItem(DEPTH_PANEL_KEY) === "1") {
+            setDepthPanelCollapsed(true);
+        }
+        if (localStorage.getItem(COMMENT_PANEL_KEY) === "1") {
+            setCommentPanelCollapsed(true);
+        }
+    } catch {}
     if (ctrlHelp) {
         ctrlHelp.addEventListener("click", () => showHelp(true));
     }
@@ -886,16 +988,29 @@ function handleKeyDown(e) {
     const isEditing = state.editingNodeId !== null;
 
     if (e.ctrlKey || e.metaKey) {
-        if (e.key === "z") {
+        if (e.key === "z" || e.key === "Z") {
             e.preventDefault();
             undo();
             render();
             renderConnectors();
-        } else if (e.key === "y") {
+        } else if (e.key === "y" || e.key === "Y") {
             e.preventDefault();
             redo();
             render();
             renderConnectors();
+        } else if (!isEditing && !isInputFocused && (e.key === "c" || e.key === "C")) {
+            if (state.selectedNodeId) {
+                e.preventDefault();
+                copyBranch(state.selectedNodeId);
+            }
+        } else if (!isEditing && !isInputFocused && (e.key === "v" || e.key === "V")) {
+            if (state.selectedNodeId && state.clipboardBranch) {
+                e.preventDefault();
+                const newId = pasteBranch(state.selectedNodeId);
+                if (newId) {
+                    render();
+                }
+            }
         }
         return;
     }
