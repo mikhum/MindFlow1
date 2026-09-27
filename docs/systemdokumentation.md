@@ -134,8 +134,12 @@ State innehaller i huvudsak:
 3. Pusha till avsedd branch.
 4. Skapa Pull Request vid behov.
 
-### 11.5 Felsokning snabbguide
+### 11.5 Cloud Run Driftsättning
+Fullständig steg-för-steg-guide för containerbygge, Cloud Run och inställningar i Google Cloud Console finns i [docs/cloud-run-guide.md](file:///c:/Users/mikae/OneDrive/Utveckling/MindFlow1/tests/MindFlow1/docs/cloud-run-guide.md).
+
+### 11.6 Felsokning snabbguide
 1. Om UI beter sig ovantat: hard-reload i webblasaren.
 2. Om tester faller: kor npm run smoke och lasa forsta felet i output.
 3. Om drag/drop missar mal: verifiera att noden slapps ovanpa malnoden.
 4. Om import misslyckas: kontrollera filformat och att root-node finns.
+5. Om Google Drive ger origin_mismatch: kontrollera att Cloud Run URL:en är inlagd i Google Cloud Console under Authorized JavaScript origins.

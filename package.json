@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "smoke": "node tests/smoke.mjs"
+    "smoke": "node tests/smoke.mjs",
+    "docker:build": "docker build -t mindflow .",
+    "docker:run": "docker run -p 8080:8080 mindflow"
   },
   "devDependencies": {
     "playwright": "^1.54.1"

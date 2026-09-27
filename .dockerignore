@@ -1,0 +1,9 @@
+.git
+.github
+.gitignore
+node_modules
+tests
+docs
+*.md
+package-lock.json
+package.json
